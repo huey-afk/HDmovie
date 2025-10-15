@@ -1,80 +1,222 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Website</title>
-  <link rel="stylesheet" href="css/home.css">
-  <script defer src="js/home.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Stream Player with TMDB Search</title>
+    <!-- Video.js CSS -->
+    <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .stream-item:hover, .search-result:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+        }
+        .video-js { background-color: #000; }
+        .vjs-big-play-button {
+            background-color: rgba(45, 55, 72, 0.7) !important;
+            border-color: rgba(255, 255, 255, 0.4) !important;
+            border-radius: 50%;
+            height: 2em !important;
+            width: 2em !important;
+            line-height: 2em !important;
+            margin-top: -1em !important;
+            margin-left: -1em !important;
+        }
+        /* Hide scrollbar but allow scrolling */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
 </head>
-<body>
-  <div class="navbar">
-    <img src="logo.png" alt="LOGO HERE" />
-    <div class="nav-links">
-      <a href="index.html">Home</a>
-      <input type="text" class="search-bar" placeholder="Search..." onfocus="openSearchModal()" />
+<body class="bg-gray-900 text-gray-200 min-h-screen p-4 md:p-6">
+    <div class="w-full max-w-6xl mx-auto">
+        
+        <header class="text-center mb-6">
+            <h1 class="text-3xl md:text-4xl font-bold text-white">Dynamic Stream Player</h1>
+            <p class="text-gray-400 mt-1">Search for a movie to find and play streams.</p>
+        </header>
+
+        <!-- Search Section -->
+        <section class="mb-6 p-4 bg-gray-800 border border-gray-700 rounded-xl">
+            <label for="searchInput" class="block text-sm font-medium text-gray-300 mb-1">Movie Search</label>
+            <div class="flex gap-2">
+                <input type="text" id="searchInput" placeholder="e.g., The Matrix" class="flex-grow bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <button id="searchBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-5 rounded-lg transition-colors">Search</button>
+            </div>
+        </section>
+
+        <div id="errorMessage" class="my-4 text-red-400 text-center font-medium"></div>
+
+        <!-- Search Results Section -->
+        <section id="searchResults" class="mb-6"></section>
+
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Video Player Section -->
+            <div class="lg:col-span-2 bg-black rounded-xl shadow-2xl overflow-hidden border border-gray-700 self-start">
+                <video id="videoPlayer" class="video-js vjs-big-play-centered w-full h-auto" controls preload="auto" poster="https://placehold.co/1280x720/1a202c/ffffff?text=Search+for+a+movie">
+                </video>
+                <div class="p-4 bg-gray-800">
+                    <h2 id="videoTitle" class="text-lg font-semibold text-white truncate">No video loaded</h2>
+                </div>
+            </div>
+
+            <!-- Streams List Section -->
+            <div class="lg:col-span-1 bg-gray-800 p-4 rounded-xl shadow-lg border border-gray-700">
+                <h3 class="text-xl font-semibold mb-3 text-white border-b border-gray-600 pb-2">Available Streams</h3>
+                <div id="streamsList" class="space-y-3 max-h-[60vh] overflow-y-auto no-scrollbar">
+                    <p class="text-gray-500">Select a movie to see streams.</p>
+                </div>
+            </div>
+        </main>
+        
+        <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+        <script>
+            // --- Your TMDB API KEY is now set ---
+            const TMDB_API_KEY = 'a1e72fd93ed59f56e6332813b9f8dcae'; 
+            // ------------------------------------
+
+            const searchInput = document.getElementById('searchInput');
+            const searchBtn = document.getElementById('searchBtn');
+            const searchResultsContainer = document.getElementById('searchResults');
+            const streamsList = document.getElementById('streamsList');
+            const videoTitle = document.getElementById('videoTitle');
+            const errorMessage = document.getElementById('errorMessage');
+            const player = videojs('videoPlayer', { aspectRatio: '16:9', fluid: true, controls: true, autoplay: false, preload: 'auto' });
+
+            const MEDIAFUSION_URL_TEMPLATE = 'https://mediafusion.elfhosted.com/D-fPakgwNrWa83YWeznpCzs36uRhlygAeyhDKnnuM_ebDPkVIcJrVPfKmygjAG4ScIvIjAMtwsG-PkZmSrdukQE_JnCheSFYiAI1TUA5ugS3SxJPgOBZkZqZWJyzcna4pkEwVHwrh3fxzY7T4lpHATow/stream/movie/{imdb_id}.json';
+            const TMDB_API_BASE = 'https://api.themoviedb.org/3';
+            const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w200';
+
+            searchBtn.addEventListener('click', searchMovies);
+            searchInput.addEventListener('keyup', (event) => {
+                if (event.key === 'Enter') searchMovies();
+            });
+
+            async function searchMovies() {
+                const query = searchInput.value.trim();
+                // This check now correctly looks for a placeholder, not your actual key.
+                if (TMDB_API_KEY === 'YOUR_API_KEY_GOES_HERE' || !TMDB_API_KEY) {
+                    displayError("Please set your TMDB API Key in the HTML file.");
+                    return;
+                }
+                if (!query) {
+                    displayError("Please enter a movie title to search.");
+                    return;
+                }
+                clearError();
+                searchResultsContainer.innerHTML = `<p class="text-center text-gray-400">Searching...</p>`;
+                streamsList.innerHTML = `<p class="text-gray-500">Searching for streams...</p>`;
+                
+                try {
+                    const searchUrl = `${TMDB_API_BASE}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}`;
+                    const response = await fetch(searchUrl);
+                    if (!response.ok) throw new Error(`TMDB API Error: ${response.statusText}`);
+                    const data = await response.json();
+                    displaySearchResults(data.results);
+                } catch (error) {
+                    console.error("Search error:", error);
+                    displayError(error.message);
+                }
+            }
+
+            function displaySearchResults(results) {
+                searchResultsContainer.innerHTML = '';
+                if (results.length === 0) {
+                    searchResultsContainer.innerHTML = `<p class="text-center text-gray-500">No movies found for that query.</p>`;
+                    return;
+                }
+                const resultsGrid = document.createElement('div');
+                resultsGrid.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4';
+                results.forEach(movie => {
+                    const movieCard = document.createElement('div');
+                    movieCard.className = 'search-result bg-gray-800 rounded-lg overflow-hidden cursor-pointer transition-all duration-200';
+                    const posterUrl = movie.poster_path ? `${TMDB_IMAGE_BASE}${movie.poster_path}` : 'https://placehold.co/200x300/1f2937/ffffff?text=No+Poster';
+                    movieCard.innerHTML = `
+                        <img src="${posterUrl}" alt="${movie.title}" class="w-full h-auto object-cover">
+                        <div class="p-2">
+                            <p class="text-sm font-semibold text-white truncate">${movie.title}</p>
+                            <p class="text-xs text-gray-400">${movie.release_date ? movie.release_date.split('-')[0] : 'N/A'}</p>
+                        </div>
+                    `;
+                    movieCard.addEventListener('click', () => getImdbIdAndLoadStreams(movie.id));
+                    resultsGrid.appendChild(movieCard);
+                });
+                searchResultsContainer.appendChild(resultsGrid);
+            }
+
+            async function getImdbIdAndLoadStreams(tmdbId) {
+                searchResultsContainer.innerHTML = ''; // Clear search results
+                streamsList.innerHTML = `<p class="text-gray-400">Fetching movie details...</p>`;
+                try {
+                    const detailsUrl = `${TMDB_API_BASE}/movie/${tmdbId}?api_key=${TMDB_API_KEY}`;
+                    const response = await fetch(detailsUrl);
+                    if (!response.ok) throw new Error("Could not fetch movie details.");
+                    const data = await response.json();
+                    if (data.imdb_id) {
+                        const streamUrl = MEDIAFUSION_URL_TEMPLATE.replace('{imdb_id}', data.imdb_id);
+                        fetchStreams(streamUrl);
+                    } else {
+                        throw new Error("IMDb ID not found for this movie.");
+                    }
+                } catch (error) {
+                    console.error("IMDb fetch error:", error);
+                    displayError(error.message);
+                    streamsList.innerHTML = `<p class="text-red-400">Could not load streams.</p>`;
+                }
+            }
+
+            async function fetchStreams(url) {
+                streamsList.innerHTML = '<p class="text-gray-400">Fetching streams...</p>';
+                clearError();
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`Stream provider error! Status: ${response.status}`);
+                    const data = await response.json();
+                    if (data.streams && data.streams.length > 0) {
+                        displayStreams(data.streams);
+                    } else {
+                        streamsList.innerHTML = '<p class="text-gray-500">No playable streams found for this movie.</p>';
+                    }
+                } catch (error) {
+                    console.error("Fetch error:", error);
+                    displayError(error.message);
+                    streamsList.innerHTML = `<p class="text-red-400">${error.message}</p>`;
+                }
+            }
+            
+            function displayStreams(streams) {
+                streamsList.innerHTML = '';
+                streams.forEach(stream => {
+                    const streamItem = document.createElement('div');
+                    streamItem.className = 'stream-item bg-gray-700 p-3 rounded-lg cursor-pointer transition-all duration-200';
+                    streamItem.innerHTML = `<p class="font-semibold text-white truncate">${stream.name || 'Untitled'}</p><p class="text-xs text-gray-400 mt-1 truncate">${stream.description || 'No description'}</p>`;
+                    streamItem.addEventListener('click', () => playStream(stream, streamItem));
+                    streamsList.appendChild(streamItem);
+                });
+            }
+
+            function playStream(stream, selectedElement) {
+                player.poster(stream.thumbnailUrl || 'https://placehold.co/1280x720/1a202c/ffffff?text=Loading...');
+                player.src({ src: stream.url, type: 'video/mp4' });
+                player.play().catch(err => {
+                    console.error("Autoplay failed:", err);
+                    displayError("Could not autoplay. Please press play manually.");
+                });
+                videoTitle.textContent = stream.name || 'Untitled Stream';
+                document.querySelectorAll('.stream-item').forEach(item => item.classList.remove('bg-blue-600'));
+                if (selectedElement) selectedElement.classList.add('bg-blue-600');
+            }
+
+            function displayError(message) { errorMessage.textContent = message; }
+            function clearError() { errorMessage.textContent = ''; }
+        </script>
     </div>
-  </div>
-
-  <div class="banner" id="banner">
-    <h1 id="banner-title"></h1>
-  </div>
-
-  <div class="row">
-    <h2>Trending Movies</h2>
-    <div class="list" id="movies-list"></div>
-  </div>
-
-  <div class="row">
-    <h2>Trending TV Shows</h2>
-    <div class="list" id="tvshows-list"></div>
-  </div>
-
-  <div class="row">
-    <h2>Trending Anime</h2>
-    <div class="list" id="anime-list"></div>
-  </div>
-
-  <div class="modal" id="modal">
-    <div class="modal-content">
-      <span class="close" onclick="closeModal()" style="color: red;">&times;</span>
-      <div class="modal-body">
-        <img id="modal-image" src="" alt=""/>
-        <div class="modal-text">
-          <h2 id="modal-title"></h2>
-          <div class="stars" id="modal-rating"></div>
-          <p id="modal-description"></p>
-        </div>
-      </div>
-
-      <div class="server-selector">
-        <label for="server">Change Server:</label>
-        <select id="server" onchange="changeServer()">
-          <option value="vidsrc.cc">Vidsrc.cc</option>
-          <option value="vidsrc.me">Vidsrc.me</option>
-          <option value="player.videasy.net">Player.Videasy.net</option>
-          <option value="realdebrid">Real-Debrid</option>
-        </select>
-      </div>
-      <iframe id="modal-video" width="100%" height="315" frameborder="0" allowfullscreen></iframe>
-    </div>
-  </div>
-
-  <div class="search-modal" id="search-modal">
-    <span class="close" onclick="closeSearchModal()" style="color: red;">&times;</span>
-    <input type="text" id="search-input" placeholder="Search for a movie or show..." oninput="searchTMDB()" />
-    <div class="results" id="search-results"></div>
-  </div>
-
-  <footer class="footer">
-    <div class="footer-content">
-      <p>&copy; 2025 My Website. All rights reserved.</p>
-      <div class="footer-links">
-        <a href="#">Disclaimer</a>
-        <a href="#">About Us</a>
-        <a href="#">Contact Us</a>
-      </div>
-    </div>
-  </footer>
 </body>
 </html>
+
