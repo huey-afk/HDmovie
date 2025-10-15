@@ -2,7 +2,7 @@
 <html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale-1.0">
     <title>Dynamic Stream Player with TMDB Search</title>
     <!-- Video.js CSS -->
     <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
@@ -56,9 +56,9 @@
         <!-- Search Results Section -->
         <section id="searchResults" class="mb-6"></section>
 
-        <main class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <main class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <!-- Video Player Section -->
-            <div class="lg:col-span-2 bg-black rounded-xl shadow-2xl overflow-hidden border border-gray-700 self-start">
+            <div class="md:col-span-2 bg-black rounded-xl shadow-2xl overflow-hidden border border-gray-700 self-start">
                 <video id="videoPlayer" class="video-js vjs-big-play-centered w-full h-auto" controls preload="auto" poster="https://placehold.co/1280x720/1a202c/ffffff?text=Search+for+a+movie">
                 </video>
                 <div class="p-4 bg-gray-800">
@@ -67,7 +67,7 @@
             </div>
 
             <!-- Streams List Section -->
-            <div class="lg:col-span-1 bg-gray-800 p-4 rounded-xl shadow-lg border border-gray-700">
+            <div class="bg-gray-800 p-4 rounded-xl shadow-lg border border-gray-700">
                 <h3 class="text-xl font-semibold mb-3 text-white border-b border-gray-600 pb-2">Available Streams</h3>
                 <div id="streamsList" class="space-y-3 max-h-[60vh] overflow-y-auto no-scrollbar">
                     <p class="text-gray-500">Select a movie to see streams.</p>
@@ -99,6 +99,12 @@
             });
 
             async function searchMovies() {
+                // --- ENHANCEMENT: Reset player on new search ---
+                player.reset();
+                player.poster('https://placehold.co/1280x720/1a202c/ffffff?text=Search+for+a+movie');
+                videoTitle.textContent = 'No video loaded';
+                // -----------------------------------------
+
                 const query = searchInput.value.trim();
                 // This check now correctly looks for a placeholder, not your actual key.
                 if (TMDB_API_KEY === 'YOUR_API_KEY_GOES_HERE' || !TMDB_API_KEY) {
