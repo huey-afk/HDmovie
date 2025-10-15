@@ -3,248 +3,491 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Stream Player with TMDB Search</title>
+    <title>StreamFlix - A Netflix-Style Player</title>
+    <!-- Video.js CSS -->
     <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .stream-item:hover, .search-result:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2); }
-        .video-js { background-color: #000; }
-        .vjs-big-play-button { background-color: rgba(45, 55, 72, 0.7) !important; border-radius: 50%; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { scrollbar-width: none; }
-        .track-button { background-color: #4a5568; color: white; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; }
-        .track-button.active { background-color: #2b6cb0; border-color: #4299e1; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #141414; /* Netflix black */
+        }
+        .hero-gradient {
+            background-image: linear-gradient(to top, #141414, rgba(20, 20, 20, 0) 50%);
+        }
+        .movie-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            flex: 0 0 auto; /* Prevent flex items from shrinking */
+        }
+        .movie-card:hover {
+            transform: scale(1.05);
+            z-index: 10;
+        }
+        .movie-carousel {
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none;  /* Internet Explorer 10+ */
+        }
+        .movie-carousel::-webkit-scrollbar {
+            display: none; /* Safari and Chrome */
+        }
+        .vjs-big-play-button {
+            background-color: rgba(229, 9, 20, 0.7) !important;
+            border-color: rgba(255, 255, 255, 0.4) !important;
+            border-radius: 50%;
+            height: 2em !important;
+            width: 2em !important;
+            line-height: 2em !important;
+            margin-top: -1em !important;
+            margin-left: -1em !important;
+        }
+        #playerModal.hidden {
+            display: none;
+        }
+        .carousel-container:hover .scroll-btn {
+            opacity: 1;
+        }
+        .scroll-btn {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 50px;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            cursor: pointer;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+            padding-bottom: 1rem; /* To align with the padding of the carousel */
+        }
+        .scroll-btn.left {
+            left: 0;
+            border-top-right-radius: 0.5rem;
+            border-bottom-right-radius: 0.5rem;
+        }
+        .scroll-btn.right {
+            right: 0;
+            border-top-left-radius: 0.5rem;
+            border-bottom-left-radius: 0.5rem;
+        }
+        /* Adjusted styles for the stream list carousel buttons */
+        #streamsCarouselContainer .scroll-btn {
+             padding-bottom: 0; /* Remove bottom padding for this specific carousel */
+             height: 100%;
+        }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-200 min-h-screen p-4 md:p-6">
-    <div class="w-full max-w-6xl mx-auto">
-        <header class="text-center mb-6">
-            <h1 class="text-3xl md:text-4xl font-bold text-white">Dynamic Stream Player</h1>
-            <p class="text-gray-400 mt-1">Search for a movie to find and play streams.</p>
-        </header>
+<body class="text-gray-200">
 
-        <section class="mb-6 p-4 bg-gray-800 border border-gray-700 rounded-xl">
-            <label for="searchInput" class="block text-sm font-medium text-gray-300 mb-1">Movie Search</label>
-            <div class="flex gap-2">
-                <input type="text" id="searchInput" placeholder="e.g., The Matrix" class="flex-grow bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                <button id="searchBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-5 rounded-lg transition-colors">Search</button>
+    <!-- Header / Navbar -->
+    <header class="fixed top-0 left-0 right-0 z-50 p-4 transition-colors duration-300 bg-gradient-to-b from-black/80 to-transparent">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <h1 class="text-2xl md:text-3xl font-extrabold text-red-600 tracking-wider">STREAMFLIX</h1>
+            <div class="flex items-center gap-4 bg-gray-900/50 border border-gray-700 rounded-full px-3 py-1.5">
+                <input type="text" id="searchInput" placeholder="Search for movies..." class="bg-transparent text-white placeholder-gray-400 focus:outline-none w-32 sm:w-48 md:w-64">
+                <button id="searchBtn">
+                    <i data-lucide="search" class="w-5 h-5 text-gray-400 hover:text-white transition-colors"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="pt-24">
+        <!-- Hero Section -->
+        <section id="heroSection" class="relative h-[60vh] md:h-[70vh] flex items-end text-white p-6 md:p-12" style="background-image: url('https://image.tmdb.org/t/p/original/kXfqcdQKsToO0OUXHcrrNCHDBzO.jpg'); background-size: cover; background-position: center top;">
+             <div class="absolute inset-0 hero-gradient"></div>
+             <div class="relative z-10 max-w-xl">
+                <h2 id="heroTitle" class="text-4xl md:text-6xl font-extrabold drop-shadow-lg">The Matrix</h2>
+                <p id="heroOverview" class="mt-4 text-sm md:text-base max-w-prose drop-shadow-md">
+                    Set in the 22nd century, The Matrix tells the story of a computer hacker who joins a group of underground insurgents fighting the vast and powerful computers who now rule the earth.
+                </p>
             </div>
         </section>
+        
+        <div id="errorMessage" class="my-4 text-red-500 text-center font-medium container mx-auto max-w-7xl"></div>
+        
+        <!-- Movie Rows Container -->
+        <div id="movieRows" class="space-y-12 py-8 px-4 md:px-8 max-w-7xl mx-auto">
+             <!-- Rows will be injected here -->
+        </div>
+    </main>
 
-        <div id="errorMessage" class="my-4 text-red-400 text-center font-medium"></div>
-
-        <section id="searchResults" class="mb-6"></section>
-
-        <main class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="md:col-span-2 bg-black rounded-xl shadow-2xl overflow-hidden border border-gray-700 self-start">
-                <video id="videoPlayer" class="video-js vjs-big-play-centered w-full h-auto" controls preload="auto" poster="https://placehold.co/1280x720/1a202c/ffffff?text=Search+for+a+movie"></video>
-                <div class="p-4 bg-gray-800">
-                    <h2 id="videoTitle" class="text-lg font-semibold text-white truncate">No video loaded</h2>
-                    <div class="flex flex-wrap items-center gap-x-6 gap-y-2 mt-3">
-                        <div id="audioTrackSelector" class="flex items-center gap-2"></div>
-                        <div id="subtitleSelector" class="flex flex-wrap items-center gap-2"></div>
-                    </div>
-                    <div id="trackInfo" class="text-xs text-gray-500 mt-2"></div>
-
-                    <div class="mt-4 border-t border-gray-700 pt-3">
-                        <label for="subtitleSearchInput" class="block text-xs font-medium text-gray-400 mb-1">Manual Subtitle Search</label>
-                        <div class="flex gap-2">
-                            <input type="text" id="subtitleSearchInput" placeholder="e.g., John Wick 3" class="flex-grow bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                            <button id="searchSubtitleBtn" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-1 px-3 rounded-lg text-sm transition-colors">Search Subs</button>
-                        </div>
-                    </div>
-                </div>
+    <!-- Player Modal -->
+    <div id="playerModal" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="relative w-full max-w-6xl bg-gray-900 rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh]">
+            <button id="closeModalBtn" class="absolute top-3 right-3 z-20 text-gray-400 hover:text-white bg-black/50 rounded-full p-1">
+                <i data-lucide="x" class="w-7 h-7"></i>
+            </button>
+            
+            <!-- Video Player -->
+            <div class="bg-black flex-shrink-0">
+                 <video id="videoPlayer" class="video-js vjs-big-play-centered w-full h-auto" controls preload="auto"></video>
             </div>
 
-            <div class="bg-gray-800 p-4 rounded-xl shadow-lg border border-gray-700">
-                <h3 class="text-xl font-semibold mb-3 text-white border-b border-gray-600 pb-2">Available Streams</h3>
-                <div id="streamsList" class="space-y-3 max-h-[60vh] overflow-y-auto no-scrollbar">
-                    <p class="text-gray-500">Select a movie to see streams.</p>
+            <!-- Streams Section -->
+            <div class="flex flex-col p-4 bg-gray-800 overflow-y-auto">
+                <div id="modalMovieInfo" class="mb-4 flex-shrink-0">
+                    <h2 id="modalMovieTitle" class="text-2xl font-bold text-white"></h2>
+                </div>
+                <h3 class="text-lg font-semibold mb-3 text-white border-b border-gray-600 pb-2 flex-shrink-0">Available Streams</h3>
+                <div id="streamsCarouselContainer" class="carousel-container relative">
+                     <div id="streamsList" class="movie-carousel flex overflow-x-auto space-x-4 py-2">
+                        <!-- Streams injected here -->
+                    </div>
+                    <button class="scroll-btn left">
+                        <i data-lucide="chevron-left" class="w-8 h-8"></i>
+                    </button>
+                    <button class="scroll-btn right">
+                        <i data-lucide="chevron-right" class="w-8 h-8"></i>
+                    </button>
                 </div>
             </div>
-        </main>
-
-        <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
-        <script>
-            const TMDB_API_KEY = 'a1e72fd93ed59f56e6332813b9f8dcae';
-            const MEDIAFUSION_URL_TEMPLATE = 'https://mediafusion.elfhosted.com/D-fPakgwNrWa83YWeznpCzs36uRhlygAeyhDKnnuM_ebDPkVIcJrVPfKmygjAG4ScIvIjAMtwsG-PkZmSrdukQE_JnCheSFYiAI1TUA5ugS3SxJPgOBZkZqZWJyzcna4pkEwVHwrh3fxzY7T4lpHATow/stream/movie/{imdb_id}.json';
-            const TMDB_API_BASE = 'https://api.themoviedb.org/3';
-            const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w200';
-            const SUBTITLE_API_BASE = 'https://freesubtitles.ai/api/v1';
-            const CORS_PROXY_URL = 'https://corsproxy.io/?';
-
-            const searchInput = document.getElementById('searchInput');
-            const searchBtn = document.getElementById('searchBtn');
-            const searchResultsContainer = document.getElementById('searchResults');
-            const streamsList = document.getElementById('streamsList');
-            const videoTitle = document.getElementById('videoTitle');
-            const errorMessage = document.getElementById('errorMessage');
-            const audioTrackSelector = document.getElementById('audioTrackSelector');
-            const subtitleSelector = document.getElementById('subtitleSelector');
-            const trackInfo = document.getElementById('trackInfo');
-            const subtitleSearchInput = document.getElementById('subtitleSearchInput');
-            const searchSubtitleBtn = document.getElementById('searchSubtitleBtn');
-
-            let currentImdbId = null;
-            const player = videojs('videoPlayer', { aspectRatio: '16:9', fluid: true, controls: true });
-
-            searchBtn.addEventListener('click', searchMovies);
-            searchInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') searchMovies(); });
-            searchSubtitleBtn.addEventListener('click', manualSubtitleSearch);
-
-            async function searchMovies() {
-                player.reset();
-                player.poster('https://placehold.co/1280x720/1a202c/ffffff?text=Search+for+a+movie');
-                videoTitle.textContent = 'No video loaded';
-                currentImdbId = null;
-                resetTrackSelectors();
-                const query = searchInput.value.trim();
-                if (!query) return displayError('Please enter a movie title.');
-
-                searchResultsContainer.innerHTML = '<p class="text-center text-gray-400">Searching...</p>';
-                const res = await fetch(`${TMDB_API_BASE}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}`);
-                const data = await res.json();
-                displaySearchResults(data.results);
-            }
-
-            function displaySearchResults(results) {
-                searchResultsContainer.innerHTML = '';
-                if (!results.length) return searchResultsContainer.innerHTML = '<p class="text-center text-gray-400">No movies found.</p>';
-                const grid = document.createElement('div');
-                grid.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4';
-                results.forEach(m => {
-                    const div = document.createElement('div');
-                    div.className = 'search-result bg-gray-800 rounded-lg overflow-hidden cursor-pointer';
-                    const img = m.poster_path ? TMDB_IMAGE_BASE + m.poster_path : 'https://placehold.co/200x300';
-                    div.innerHTML = `<img src="${img}"/><div class='p-2'><p class='font-semibold'>${m.title}</p></div>`;
-                    div.onclick = () => getImdbIdAndLoadStreams(m.id, m.title);
-                    grid.appendChild(div);
-                });
-                searchResultsContainer.appendChild(grid);
-            }
-
-            async function getImdbIdAndLoadStreams(tmdbId, title) {
-                subtitleSearchInput.value = title;
-                const details = await fetch(`${TMDB_API_BASE}/movie/${tmdbId}?api_key=${TMDB_API_KEY}`);
-                const data = await details.json();
-                if (!data.imdb_id) return displayError('No IMDb ID found.');
-                currentImdbId = data.imdb_id;
-                const url = MEDIAFUSION_URL_TEMPLATE.replace('{imdb_id}', currentImdbId);
-                fetchStreams(url);
-            }
-
-            async function fetchStreams(url) {
-                streamsList.innerHTML = '<p class="text-gray-400">Fetching streams...</p>';
-                const res = await fetch(url);
-                const data = await res.json();
-                if (!data.streams?.length) return streamsList.innerHTML = '<p class="text-gray-400">No streams found.</p>';
-                streamsList.innerHTML = '';
-                data.streams.forEach(s => {
-                    const el = document.createElement('div');
-                    el.className = 'stream-item bg-gray-700 p-3 rounded-lg cursor-pointer';
-                    el.innerHTML = `<p class='font-semibold'>${s.name}</p>`;
-                    el.onclick = () => playStream(s, el);
-                    streamsList.appendChild(el);
-                });
-            }
-
-            function playStream(stream, el) {
-                player.src({ src: stream.url, type: 'video/mp4' });
-                videoTitle.textContent = stream.name;
-                document.querySelectorAll('.stream-item').forEach(i => i.classList.remove('bg-blue-600'));
-                el.classList.add('bg-blue-600');
-
-                player.one('loadedmetadata', () => {
-                    setupTrackControls();
-                    if (currentImdbId) {
-                        fetchExternalSubtitles(currentImdbId).then(() => {
-                            if (subtitleSelector.innerText.includes('No online subtitles')) {
-                                fetchExternalSubtitles(videoTitle.textContent, true);
-                            }
-                        });
-                    }
-                });
-            }
-
-            function resetTrackSelectors() {
-                audioTrackSelector.innerHTML = '';
-                subtitleSelector.innerHTML = '';
-                trackInfo.innerHTML = '';
-            }
-
-            async function fetchExternalSubtitles(idOrQuery, manual = false) {
-                trackInfo.textContent = '';
-                const searching = document.createElement('span');
-                searching.className = 'text-sm text-gray-400 animate-pulse';
-                searching.textContent = 'Searching subtitles...';
-                subtitleSelector.appendChild(searching);
-
-                try {
-                    const apiUrl = manual ? `${SUBTITLE_API_BASE}/search?query=${encodeURIComponent(idOrQuery)}` : `${SUBTITLE_API_BASE}/subtitles/${idOrQuery}`;
-                    const proxiedUrl = `${CORS_PROXY_URL}${encodeURIComponent(apiUrl)}`;
-                    const res = await fetch(proxiedUrl);
-                    const subsData = await res.json();
-                    const subs = Array.isArray(subsData) ? subsData : (subsData.subtitles || []);
-                    searching.remove();
-                    if (!subs.length) return trackInfo.textContent = 'No online subtitles found.';
-                    displaySubtitleButtons(subs);
-                    trackInfo.textContent = `Loaded ${subs.length} subtitle option(s).`;
-                } catch (err) {
-                    console.error('Subtitle fetch error', err);
-                    searching.remove();
-                    trackInfo.textContent = 'Failed to fetch subtitles.';
-                }
-            }
-
-            function displaySubtitleButtons(subtitles) {
-                if (subtitleSelector.innerHTML.trim() === '') {
-                    subtitleSelector.innerHTML = `<span class='text-sm text-gray-400'>Subtitles:</span>`;
-                    const off = document.createElement('button');
-                    off.className = 'track-button active';
-                    off.textContent = 'Off';
-                    off.onclick = () => {
-                        const tracks = player.textTracks();
-                        for (let j = 0; j < tracks.length; j++) tracks[j].mode = 'disabled';
-                        document.querySelectorAll('#subtitleSelector .track-button').forEach(btn => btn.classList.remove('active'));
-                        off.classList.add('active');
-                    };
-                    subtitleSelector.appendChild(off);
-                }
-
-                subtitles.forEach(sub => {
-                    const btn = document.createElement('button');
-                    btn.className = 'track-button';
-                    btn.textContent = sub.language || 'External';
-                    btn.onclick = async () => {
-                        try {
-                            const proxiedUrl = `${CORS_PROXY_URL}${encodeURIComponent(sub.url)}`;
-                            const res = await fetch(proxiedUrl);
-                            const srt = await res.text();
-                            const vtt = 'WEBVTT\n\n' + srt.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2');
-                            const blob = new Blob([vtt], { type: 'text/vtt' });
-                            const vttUrl = URL.createObjectURL(blob);
-                            player.addRemoteTextTrack({ kind: 'subtitles', label: sub.language, src: vttUrl }, false);
-                            document.querySelectorAll('#subtitleSelector .track-button').forEach(b => b.classList.remove('active'));
-                            btn.classList.add('active');
-                        } catch (e) {
-                            console.error('Subtitle load error', e);
-                        }
-                    };
-                    subtitleSelector.appendChild(btn);
-                });
-            }
-
-            function manualSubtitleSearch() {
-                const query = subtitleSearchInput.value.trim();
-                if (!query) return displayError('Enter a title for subtitles.');
-                fetchExternalSubtitles(query, true);
-            }
-
-            function setupTrackControls() { resetTrackSelectors(); }
-            function displayError(msg) { errorMessage.textContent = msg; }
-        </script>
+        </div>
     </div>
+
+
+    <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+    <script>
+        lucide.createIcons();
+        
+        const TMDB_API_KEY = 'a1e72fd93ed59f56e6332813b9f8dcae'; // Your key is set
+        const TMDB_API_BASE = 'https://api.themoviedb.org/3';
+        const TMDB_IMAGE_BASE_POSTER = 'https://image.tmdb.org/t/p/w500';
+        const TMDB_IMAGE_BASE_BACKDROP = 'https://image.tmdb.org/t/p/original';
+        const MEDIAFUSION_URL_TEMPLATE = 'https://mediafusion.elfhosted.com/D-fPakgwNrWa83YWeznpCzs36uRhlygAeyhDKnnuM_ebDPkVIcJrVPfKmygjAG4ScIvIjAMtwsG-PkZmSrdukQE_JnCheSFYiAI1TUA5ugS3SxJPgOBZkZqZWJyzcna4pkEwVHwrh3fxzY7T4lpHATow/stream/movie/{imdb_id}.json';
+
+        // DOM Elements
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        const movieRowsContainer = document.getElementById('movieRows');
+        const playerModal = document.getElementById('playerModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const streamsList = document.getElementById('streamsList');
+        const modalMovieTitle = document.getElementById('modalMovieTitle');
+        const heroSection = document.getElementById('heroSection');
+        const heroTitle = document.getElementById('heroTitle');
+        const heroOverview = document.getElementById('heroOverview');
+
+        const player = videojs('videoPlayer', { 
+            aspectRatio: '16:9', 
+            fluid: true,
+            controls: true,
+            controlBar: {
+                children: [
+                    'playToggle',
+                    'volumePanel',
+                    'currentTimeDisplay',
+                    'timeDivider',
+                    'durationDisplay',
+                    'progressControl',
+                    'liveDisplay',
+                    'remainingTimeDisplay',
+                    'customControlSpacer',
+                    'playbackRateMenuButton',
+                    'chaptersButton',
+                    'descriptionsButton',
+                    'subtitlesButton',
+                    'captionsButton',
+                    'audioTrackButton', // Explicitly add the audio track selection button
+                    'fullscreenToggle'
+                ]
+            }
+        });
+
+        // Event Listeners
+        searchBtn.addEventListener('click', searchMovies);
+        searchInput.addEventListener('keyup', e => e.key === 'Enter' && searchMovies());
+        closeModalBtn.addEventListener('click', closeModal);
+        playerModal.addEventListener('click', e => e.target === playerModal && closeModal());
+
+        // --- Core Functions ---
+
+        async function fetchAndDisplay(endpoint, title) {
+            try {
+                const url = `${TMDB_API_BASE}/${endpoint}?api_key=${TMDB_API_KEY}&language=en-US&page=1`;
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`TMDB API Error: ${response.statusText}`);
+                const data = await response.json();
+                if (data.results && data.results.length > 0) {
+                     createMovieRow(title, data.results);
+                     // Set the hero to the first trending movie
+                     if (endpoint.includes('trending') && data.results[0].backdrop_path) {
+                        heroSection.style.backgroundImage = `url('${TMDB_IMAGE_BASE_BACKDROP}${data.results[0].backdrop_path}')`;
+                        heroTitle.textContent = data.results[0].title;
+                        heroOverview.textContent = data.results[0].overview;
+                     }
+                }
+            } catch (error) {
+                console.error(`Error fetching ${title}:`, error);
+                displayError(error.message);
+            }
+        }
+        
+        async function searchMovies() {
+            const query = searchInput.value.trim();
+            if (!query) {
+                displayError("Please enter a movie title.");
+                return;
+            }
+            clearError();
+            
+            // Clear existing search results row if it exists
+            const existingSearchRow = document.getElementById('search-results-row');
+            if(existingSearchRow) existingSearchRow.remove();
+            
+            // Add a loading indicator for search
+            const loadingIndicator = document.createElement('div');
+            loadingIndicator.id = 'search-loading';
+            loadingIndicator.innerHTML = `<h2 class="text-2xl font-bold mb-4">Searching...</h2>`;
+            movieRowsContainer.prepend(loadingIndicator);
+
+            try {
+                const searchUrl = `${TMDB_API_BASE}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}`;
+                const response = await fetch(searchUrl);
+                if (!response.ok) throw new Error(`TMDB API Error: ${response.statusText}`);
+                const data = await response.json();
+                
+                const loadingDiv = document.getElementById('search-loading');
+                if(loadingDiv) loadingDiv.remove();
+
+                if (data.results && data.results.length > 0) {
+                    createMovieRow('Search Results', data.results, 'search-results-row');
+                } else {
+                    displayError('No movies found for that query.');
+                }
+            } catch (error) {
+                console.error("Search error:", error);
+                displayError(error.message);
+            }
+        }
+
+        function createMovieRow(title, movies, rowId = '') {
+            const rowWrapper = document.createElement('div');
+            if (rowId) rowWrapper.id = rowId;
+
+            rowWrapper.innerHTML = `
+                <h2 class="text-2xl font-bold mb-4">${title}</h2>
+                <div class="carousel-container relative">
+                    <div class="movie-carousel flex overflow-x-auto space-x-4 pb-4">
+                        <!-- Movie cards go here -->
+                    </div>
+                    <button class="scroll-btn left">
+                        <i data-lucide="chevron-left" class="w-8 h-8"></i>
+                    </button>
+                    <button class="scroll-btn right">
+                        <i data-lucide="chevron-right" class="w-8 h-8"></i>
+                    </button>
+                </div>
+            `;
+            const carousel = rowWrapper.querySelector('.movie-carousel');
+            const leftBtn = rowWrapper.querySelector('.scroll-btn.left');
+            const rightBtn = rowWrapper.querySelector('.scroll-btn.right');
+
+            movies.forEach(movie => {
+                if (!movie.poster_path) return; // Skip movies without posters
+                const movieCard = document.createElement('div');
+                movieCard.className = 'movie-card w-40 md:w-48 bg-gray-800 rounded-lg overflow-hidden cursor-pointer';
+                const posterUrl = `${TMDB_IMAGE_BASE_POSTER}${movie.poster_path}`;
+                movieCard.innerHTML = `<img src="${posterUrl}" alt="${movie.title}" class="w-full h-auto">`;
+                movieCard.addEventListener('click', () => loadStreamsForMovie(movie));
+                carousel.appendChild(movieCard);
+            });
+
+            // Scroll functionality
+            leftBtn.addEventListener('click', () => {
+                carousel.scrollBy({ left: -carousel.offsetWidth * 0.9, behavior: 'smooth' });
+            });
+            rightBtn.addEventListener('click', () => {
+                carousel.scrollBy({ left: carousel.offsetWidth * 0.9, behavior: 'smooth' });
+            });
+
+            // Re-render icons since they were added dynamically
+            lucide.createIcons({
+                nodes: [leftBtn, rightBtn]
+            });
+            
+            // Prepend search results, append others
+            if(rowId === 'search-results-row'){
+                movieRowsContainer.prepend(rowWrapper);
+            } else {
+                movieRowsContainer.appendChild(rowWrapper);
+            }
+        }
+
+        async function loadStreamsForMovie(movie) {
+            openModal(); // Open modal immediately to show loading state
+            modalMovieTitle.textContent = movie.title;
+            player.poster(`${TMDB_IMAGE_BASE_POSTER}${movie.poster_path}`);
+            streamsList.innerHTML = `<p class="text-gray-400">Fetching movie details...</p>`;
+
+            try {
+                const detailsUrl = `${TMDB_API_BASE}/movie/${movie.id}?api_key=${TMDB_API_KEY}`;
+                const response = await fetch(detailsUrl);
+                if (!response.ok) throw new Error("Could not fetch movie details.");
+                const data = await response.json();
+                
+                if (data.imdb_id) {
+                    const streamUrl = MEDIAFUSION_URL_TEMPLATE.replace('{imdb_id}', data.imdb_id);
+                    await fetchAndDisplayStreams(streamUrl);
+                } else {
+                    throw new Error("IMDb ID not found for this movie.");
+                }
+            } catch (error) {
+                console.error("IMDb fetch error:", error);
+                streamsList.innerHTML = `<p class="text-red-400">${error.message}</p>`;
+            }
+        }
+
+        async function fetchAndDisplayStreams(url) {
+            streamsList.innerHTML = '<p class="text-gray-400">Fetching available streams...</p>';
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`Stream provider error (Status: ${response.status})`);
+                const data = await response.json();
+                
+                if (data.streams && data.streams.length > 0) {
+                    streamsList.innerHTML = ''; // Clear loading message
+                    data.streams.forEach(stream => {
+                        const streamItem = document.createElement('div');
+                        streamItem.className = 'bg-gray-700/80 p-3 rounded-lg cursor-pointer transition-colors hover:bg-red-600 flex-shrink-0 w-60 md:w-64 flex flex-col justify-between';
+                        
+                        const info = parseStreamInfo(stream);
+
+                        streamItem.innerHTML = `
+                            <div>
+                                <p class="font-normal text-xs text-gray-300 whitespace-pre-wrap break-words">${info.title}</p>
+                            </div>
+                            <div class="mt-2 pt-2 border-t border-gray-600/50 space-y-2">
+                                <div class="flex justify-end items-center">
+                                    <div class="flex-shrink-0 flex items-center space-x-1.5">
+                                        ${info.quality ? `<span class="text-[10px] bg-red-600 text-white font-bold rounded px-1.5 py-0.5">${info.quality}</span>` : ''}
+                                        ${info.audio ? `<span class="text-[10px] bg-gray-600 text-white font-semibold rounded px-1.5 py-0.5">${info.audio}</span>` : ''}
+                                        ${info.size ? `<span class="text-[10px] bg-blue-600 text-white font-semibold rounded px-1.5 py-0.5">${info.size}</span>` : ''}
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-1.5 text-gray-400">
+                                     <i data-lucide="languages" class="w-3.5 h-3.5 flex-shrink-0"></i>
+                                     <span class="text-[11px] truncate">${info.languages.join(', ') || 'N/A'}</span>
+                                </div>
+                                 <div class="flex items-center gap-1.5 text-gray-400">
+                                     <i data-lucide="hard-drive" class="w-3.5 h-3.5 flex-shrink-0"></i>
+                                     <span class="text-[11px] truncate">${info.source || 'Unknown Source'}</span>
+                                </div>
+                            </div>
+                        `;
+
+                        streamItem.addEventListener('click', () => playStream(stream, streamItem));
+                        streamsList.appendChild(streamItem);
+                        lucide.createIcons({nodes: [streamItem]});
+                    });
+
+                    // Add scroll functionality for the stream list
+                    const streamContainer = document.getElementById('streamsCarouselContainer');
+                    const leftBtn = streamContainer.querySelector('.scroll-btn.left');
+                    const rightBtn = streamContainer.querySelector('.scroll-btn.right');
+
+                    leftBtn.addEventListener('click', () => {
+                        streamsList.scrollBy({ left: -streamsList.offsetWidth * 0.9, behavior: 'smooth' });
+                    });
+
+                    rightBtn.addEventListener('click', () => {
+                        streamsList.scrollBy({ left: streamsList.offsetWidth * 0.9, behavior: 'smooth' });
+                    });
+
+                    lucide.createIcons({
+                        nodes: [leftBtn, rightBtn]
+                    });
+
+                } else {
+                    streamsList.innerHTML = '<p class="text-gray-500">No playable streams found for this movie.</p>';
+                }
+            } catch (error) {
+                console.error("Stream fetch error:", error);
+                streamsList.innerHTML = `<p class="text-red-400">${error.message}</p>`;
+            }
+        }
+        
+        function playStream(stream, selectedElement) {
+            player.src({ src: stream.url, type: 'video/mp4' });
+            player.play().catch(err => {
+                console.error("Autoplay failed:", err);
+                displayError("Could not autoplay. Please press play manually.");
+            });
+            
+            document.querySelectorAll('#streamsList > div').forEach(item => item.classList.remove('bg-red-600'));
+            selectedElement.classList.add('bg-red-600');
+        }
+
+        function openModal() {
+            playerModal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        }
+
+        function closeModal() {
+            player.pause();
+            player.reset();
+            playerModal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        function parseStreamInfo(stream) {
+            // Use description first, fallback to name. This is the main text to display.
+            const displayText = stream.description || stream.name || 'No description available';
+            
+            let quality = '', audio = '', size = '', source = '';
+            let languages = [];
+
+            // Parse quality
+            const qualityMatch = displayText.match(/(\d{3,4}p|4k|2160p|720p)/i);
+            if (qualityMatch) quality = qualityMatch[0].toUpperCase().replace('P','p');
+
+            // Parse audio
+            const audioMatch = displayText.match(/(DDP\d\.\d|Atmos|DTS|5\.1|7\.1|AAC)/i);
+            if(audioMatch) audio = audioMatch[0].toUpperCase();
+            
+            // Parse size
+            const sizeMatch = displayText.match(/(\d+\.?\d*)\s*(GB|MB)/i);
+            if (sizeMatch) size = sizeMatch[0];
+
+            // Parse languages
+            const langMatch = displayText.match(/(English|Hindi|Tamil|Japanese|Russian|Telugu|Portuguese|Spanish|EN|ES|RU)/gi);
+            if (langMatch) {
+                languages = [...new Set(langMatch.map(l => l.charAt(0).toUpperCase() + l.slice(1)))];
+            }
+
+            // Parse source
+            const sourceMatch = displayText.match(/(TamilMV|YTS|Anonymous|Torrentio|jhojnhocrxazy|NomadX|Anony[^\s]+)/i);
+            if (sourceMatch) source = sourceMatch[0];
+
+
+            return { title: displayText, quality, audio, size, languages, source };
+        }
+
+        function displayError(message) { errorMessage.textContent = message; }
+        function clearError() { errorMessage.textContent = ''; }
+
+        // --- Initial Load ---
+        function initializeApp() {
+             if (!TMDB_API_KEY || TMDB_API_KEY === 'YOUR_API_KEY_GOES_HERE') {
+                displayError("CRITICAL: TMDB API Key not set in the script.");
+                return;
+            }
+            fetchAndDisplay('trending/movie/week', 'Trending This Week');
+            fetchAndDisplay('movie/popular', 'Popular Movies');
+            fetchAndDisplay('movie/top_rated', 'Top Rated');
+        }
+
+        initializeApp();
+    </script>
 </body>
 </html>
+
+
