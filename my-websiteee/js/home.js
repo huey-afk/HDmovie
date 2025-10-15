@@ -79,7 +79,7 @@ async function getRealDebridStream(item) {
     const magnet = data.streams?.[0]?.url;
     if (!magnet) throw new Error('No stream found.');
 
-    const proxyRes = await fetch('http://localhost:3000/api/rdproxy', {
+    const proxyRes = await fetch("https://hdmovie.onrender.com/api/rdproxy", {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ link: magnet })
