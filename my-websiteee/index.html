@@ -3,9 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StreamFlix - A Netflix-Style Player</title>
-    <!-- Video.js CSS -->
-    <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
+    <title>StreamFlix - A Multi-Server Player</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -69,58 +67,15 @@
             border-top-left-radius: 0.5rem;
             border-bottom-left-radius: 0.5rem;
         }
-        #streamsCarouselContainer .scroll-btn {
-             padding-bottom: 0;
-             height: 100%;
+        #player-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
         }
-
-        /* NEW Professional Player Skin */
-        .video-js.vjs-fluid, .video-js.vjs-16-9, .video-js.vjs-4-3 {
-            border-radius: 0.5rem;
-        }
-        .video-js .vjs-control-bar {
-            background: linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0));
-            height: 4em;
-            display: flex;
-            align-items: center;
-            padding: 0 1em;
-        }
-        .video-js .vjs-big-play-button {
-            background-color: rgba(20, 20, 20, 0.6) !important;
-            border: 2px solid rgba(255, 255, 255, 0.8) !important;
-            width: 3em !important;
-            height: 3em !important;
-            line-height: 3em !important;
-            border-radius: 50%;
-            margin-top: -1.5em !important;
-            margin-left: -1.5em !important;
-            transition: all 0.2s ease;
-        }
-        .video-js:hover .vjs-big-play-button {
-            background-color: rgba(229, 9, 20, 0.8) !important;
-            border-color: white !important;
-        }
-        .video-js .vjs-progress-control {
-           /* This is the FIX: let it be part of the flex layout and grow */
-           flex-grow: 1;
-           position: relative; /* Keep it in the flow */
-           width: auto;
-           top: auto;
-           margin: 0 1em; /* Add space around the progress bar */
-        }
-        .video-js .vjs-time-control {
-            font-size: 1em;
-            padding: 0 0.5em;
-        }
-        .video-js .vjs-play-progress, .video-js .vjs-volume-level {
+        .server-btn.active {
             background-color: #e50914;
-        }
-        .video-js .vjs-slider {
-            background-color: rgba(255, 255, 255, 0.3);
-        }
-        .video-js .vjs-menu-button-popup .vjs-menu {
-            background-color: rgba(20, 20, 20, 0.9);
-            border-radius: 0.5rem;
+            color: white;
+            font-weight: 700;
         }
     </style>
 </head>
@@ -167,34 +122,41 @@
             <button id="closePlayerModalBtn" class="absolute top-3 right-3 z-20 text-gray-400 hover:text-white bg-black/50 rounded-full p-1">
                 <i data-lucide="x" class="w-7 h-7"></i>
             </button>
-            <div class="bg-black flex-shrink-0">
-                 <video id="videoPlayer" class="video-js vjs-big-play-centered w-full h-auto" controls preload="auto"></video>
+            <div id="playerContainer" class="w-full aspect-video bg-black flex items-center justify-center">
+                <iframe id="player-iframe" allowfullscreen></iframe>
             </div>
-            <div class="flex flex-col p-4 bg-gray-800 overflow-y-auto">
-                <div id="modalMovieInfo" class="mb-4 flex-shrink-0">
-                    <h2 id="modalMovieTitle" class="text-2xl font-bold text-white"></h2>
+            <div class="flex flex-col p-4 bg-gray-800">
+                <h2 id="modalMovieTitle" class="text-2xl font-bold text-white mb-4"></h2>
+                 <div id="serversList" class="flex flex-wrap gap-2 mb-4">
+                    <!-- Server buttons will be injected here -->
                 </div>
-                <h3 class="text-lg font-semibold mb-3 text-white border-b border-gray-600 pb-2 flex-shrink-0">Available Streams</h3>
-                <div id="streamsCarouselContainer" class="carousel-container relative">
-                     <div id="streamsList" class="movie-carousel flex overflow-x-auto space-x-4 py-2"></div>
-                    <button class="scroll-btn left"><i data-lucide="chevron-left" class="w-8 h-8"></i></button>
-                    <button class="scroll-btn right"><i data-lucide="chevron-right" class="w-8 h-8"></i></button>
+                <!-- TV Show Controls -->
+                <div id="tvControls" class="hidden items-center gap-4">
+                     <div>
+                        <label for="seasonInput" class="text-sm font-medium text-gray-400">Season</label>
+                        <input type="number" id="seasonInput" value="1" min="1" class="w-20 bg-gray-700 border border-gray-600 text-white rounded-lg px-2 py-1 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                     </div>
+                     <div>
+                        <label for="episodeInput" class="text-sm font-medium text-gray-400">Episode</label>
+                        <input type="number" id="episodeInput" value="1" min="1" class="w-20 bg-gray-700 border border-gray-600 text-white rounded-lg px-2 py-1 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                     </div>
+                     <button id="loadEpisodeBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg self-end">Load Episode</button>
                 </div>
             </div>
         </div>
     </div>
     
-    <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
     <script>
         lucide.createIcons();
         
         // --- CONFIGURATION ---
         const TMDB_API_KEY = 'a1e72fd93ed59f56e6332813b9f8dcae';
-        const RD_API_KEY = 'FHOB2OWVWWUJYKN4RWBQY3RI2HL2O2UUSTX5ZZKCBOGXX2I72J4Q';
-        const CORS_API_KEY = '12b679ae';
-        const RD_API_BASE = 'https://api.real-debrid.com/rest/1.0';
-        const CORS_PROXY = 'https://proxy.cors.sh/';
-        
+        const SERVERS = [
+            { name: "Server 1", type: 'vidsrc', movieUrl: "https://vidsrc.cc/v2/embed/movie/{id}", tvUrl: "https://vidsrc.cc/v2/embed/tv/{id}" },
+            { name: "Server 2", type: 'vidsrc', movieUrl: "https://vidsrc.cc/v3/embed/movie/{id}", tvUrl: "https://vidsrc.cc/v3/embed/tv/{id}" },
+            { name: "Server 3", type: 'autoembed', movieUrl: "https://player.autoembed.cc/embed/movie/{id}", tvUrl: "https://player.autoembed.cc/embed/tv/{id}/{season}/{episode}" }
+        ];
+
         // --- CONSTANTS ---
         const TMDB_API_BASE = 'https://api.themoviedb.org/3';
         const TMDB_IMAGE_BASE_POSTER = 'https://image.tmdb.org/t/p/w500';
@@ -207,203 +169,82 @@
         const movieRowsContainer = document.getElementById('movieRows');
         const playerModal = document.getElementById('playerModal');
         const closePlayerModalBtn = document.getElementById('closePlayerModalBtn');
-        const streamsList = document.getElementById('streamsList');
+        const serversList = document.getElementById('serversList');
         const modalMovieTitle = document.getElementById('modalMovieTitle');
         const heroSection = document.getElementById('heroSection');
         const heroTitle = document.getElementById('heroTitle');
         const heroOverview = document.getElementById('heroOverview');
-
-        // --- VIDEO PLAYER INSTANCE ---
-        const player = videojs('videoPlayer', { 
-            aspectRatio: '16:9', 
-            fluid: true,
-            controls: true,
-            controlBar: {
-                children: [
-                    'playToggle', 'volumePanel', 'currentTimeDisplay', 'timeDivider', 'durationDisplay', 'progressControl', 'remainingTimeDisplay',
-                    'customControlSpacer', 'playbackRateMenuButton', 'audioTrackButton', 'fullscreenToggle'
-                ]
-            }
-        });
+        const playerIframe = document.getElementById('player-iframe');
+        const tvControls = document.getElementById('tvControls');
+        const seasonInput = document.getElementById('seasonInput');
+        const episodeInput = document.getElementById('episodeInput');
+        const loadEpisodeBtn = document.getElementById('loadEpisodeBtn');
+        
+        let currentMedia = null;
+        let activeServer = null;
 
         // --- EVENT LISTENERS ---
         searchBtn.addEventListener('click', searchContent);
         searchInput.addEventListener('keyup', e => e.key === 'Enter' && searchContent());
         closePlayerModalBtn.addEventListener('click', closeModal);
         playerModal.addEventListener('click', e => e.target === playerModal && closeModal());
+        loadEpisodeBtn.addEventListener('click', loadSelectedEpisode);
         
-
         // --- CORE LOGIC ---
-        
-        async function makeRdRequest(endpoint, options = {}) {
-            const url = `${CORS_PROXY}${RD_API_BASE}${endpoint}`;
-            const defaultOptions = {
-                headers: {
-                    'Authorization': `Bearer ${RD_API_KEY}`,
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'x-cors-api-key': CORS_API_KEY
-                }
-            };
-            const finalOptions = { ...defaultOptions, ...options };
 
-            const response = await fetch(url, finalOptions);
-
-            if (response.status === 401) throw new Error("Real-Debrid API Key is invalid.");
-            if (response.status === 403) throw new Error("CORS Proxy API Key is invalid or has expired.");
-            if (!response.ok) throw new Error(`Real-Debrid API error. Status: ${response.status}`);
-            
-            const contentType = response.headers.get("content-type");
-            if (contentType && contentType.includes("application/json")) {
-                try {
-                    return await response.json();
-                } catch(e) {
-                    // Handle cases where RD returns empty but valid JSON response
-                    return {};
-                }
-            }
-        }
-
-
-        async function playStreamWithRealDebrid(stream, selectedElement) {
-            if (!RD_API_KEY) { displayError("Real-Debrid API Key is not set."); return; }
-            if (!CORS_API_KEY) { displayError("CORS Proxy API Key is not set."); return; }
-
-            player.poster(`https://placehold.co/1280x720/141414/ffffff?text=Please%20wait...`);
-            try {
-                const magnet = `magnet:?xt=urn:btih:${stream.infoHash}&dn=${encodeURIComponent(stream.title)}`;
-                const torrentData = await makeRdRequest('/torrents/addMagnet', {
-                    method: 'POST',
-                    body: `magnet=${encodeURIComponent(magnet)}`
-                });
-
-                await makeRdRequest(`/torrents/selectFiles/${torrentData.id}`, {
-                    method: 'POST',
-                    body: 'files=all'
-                });
-
-                let attempts = 0;
-                while (attempts < 20) {
-                    await new Promise(resolve => setTimeout(resolve, 5000));
-                    const torrentInfo = await makeRdRequest(`/torrents/info/${torrentData.id}`);
-                    
-                    if (torrentInfo.status === 'downloaded' && torrentInfo.links && torrentInfo.links.length > 0) {
-                        let videoFileIndex = 0;
-                        if (torrentInfo.files.length > 1) {
-                            let maxSize = 0;
-                            torrentInfo.files.forEach((file, index) => {
-                                if (file.bytes > maxSize && (file.path.endsWith('.mkv') || file.path.endsWith('.mp4'))) {
-                                    maxSize = file.bytes;
-                                    videoFileIndex = index;
-                                }
-                            });
-                        }
-                        const streamingLink = torrentInfo.links[videoFileIndex];
-                        
-                        const unrestrictData = await makeRdRequest('/unrestrict/link', {
-                           method: 'POST',
-                           body: `link=${encodeURIComponent(streamingLink)}`
-                        });
-
-                        player.src({ src: unrestrictData.download, type: 'video/mp4' });
-                        player.play().catch(err => displayError("Autoplay failed. Press play."));
-                        document.querySelectorAll('#streamsList > div').forEach(item => item.classList.remove('bg-red-600'));
-                        selectedElement.classList.add('bg-red-600');
-                        return;
-                    }
-                    const progress = torrentInfo.progress ? `(${torrentInfo.progress}%)` : '';
-                    player.poster(`https://placehold.co/1280x720/141414/ffffff?text=Real-Debrid Status: ${torrentInfo.status} ${progress}`);
-                    attempts++;
-                }
-                throw new Error("Stream took too long to prepare on Real-Debrid.");
-            } catch (error) {
-                console.error('Real-Debrid error:', error);
-                displayError(error.message);
-                player.poster(`https://placehold.co/1280x720/141414/e50914?text=Error:+Could+not+load+stream`);
-            }
-        }
-        
-        // --- DATA FETCHING & DISPLAY ---
-        
-        async function fetchAndDisplayStreams(imdbId, mediaType) {
-            streamsList.innerHTML = '<p class="text-gray-400">Searching for torrent streams...</p>';
-            try {
-                const torrentProviderUrl = `https://torrentio.strem.fun/stream/${mediaType}/${imdbId}.json`;
-                const response = await fetch(torrentProviderUrl);
-                if (!response.ok) throw new Error(`Torrent provider error (Status: ${response.status})`);
-                const data = await response.json();
-                
-                if (data.streams && data.streams.length > 0) {
-                    streamsList.innerHTML = '';
-                    data.streams.sort((a,b) => (b.title.match(/👤\s*(\d+)/) || [0,0])[1] - (a.title.match(/👤\s*(\d+)/) || [0,0])[1]);
-                    data.streams.forEach(stream => {
-                        const info = parseStreamInfo(stream);
-                        if (!info.quality) return;
-                        const streamItem = document.createElement('div');
-                        streamItem.className = 'bg-gray-700/80 p-3 rounded-lg cursor-pointer transition-colors hover:bg-red-600 flex-shrink-0 w-60 md:w-64 flex flex-col justify-between';
-                        streamItem.innerHTML = `
-                            <div><p class="font-semibold text-xs text-gray-200 whitespace-pre-wrap break-words">${info.fileName}</p></div>
-                            <div class="mt-2 pt-2 border-t border-gray-600/50 space-y-2">
-                                <div class="flex justify-end items-center"><div class="flex-shrink-0 flex items-center space-x-1.5">
-                                    ${info.audio ? `<span class="text-[10px] ${info.audio === 'AAC' ? 'bg-green-600' : 'bg-yellow-600'} text-white font-semibold rounded px-1.5 py-0.5">${info.audio}</span>` : ''}
-                                    <span class="text-[10px] bg-red-600 text-white font-bold rounded px-1.5 py-0.5">${info.quality}</span>
-                                    <span class="text-[10px] bg-blue-600 text-white font-semibold rounded px-1.5 py-0.5">${info.size}</span>
-                                </div></div>
-                                <div class="flex items-center gap-1.5 text-gray-400"><i data-lucide="user-check" class="w-3.5 h-3.5 flex-shrink-0"></i><span class="text-[11px] truncate">${info.seeders} seeders</span></div>
-                                <div class="flex items-center gap-1.5 text-gray-400"><i data-lucide="package" class="w-3.5 h-3.5 flex-shrink-0"></i><span class="text-[11px] truncate">${info.source}</span></div>
-                            </div>`;
-                        streamItem.addEventListener('click', () => playStreamWithRealDebrid(stream, streamItem));
-                        streamsList.appendChild(streamItem);
-                        lucide.createIcons({nodes: [streamItem]});
-                    });
-                    const streamContainer = document.getElementById('streamsCarouselContainer');
-                    const leftBtn = streamContainer.querySelector('.scroll-btn.left');
-                    const rightBtn = streamContainer.querySelector('.scroll-btn.right');
-                    leftBtn.addEventListener('click', () => streamsList.scrollBy({ left: -streamsList.offsetWidth * 0.9, behavior: 'smooth' }));
-                    rightBtn.addEventListener('click', () => streamsList.scrollBy({ left: streamsList.offsetWidth * 0.9, behavior: 'smooth' }));
-                    lucide.createIcons({ nodes: [leftBtn, rightBtn] });
-                } else {
-                    closeModal();
-                    displayError('No available streams were found for this title.');
-                }
-            } catch (error) {
-                console.error("Stream fetch error:", error);
-                closeModal();
-                displayError(`Could not fetch streams: ${error.message}`);
-            }
-        }
-        
-        async function loadStreamsForMedia(media) {
+        function loadPlayerForMedia(media) {
             openModal(playerModal);
+            currentMedia = media;
             modalMovieTitle.textContent = media.title || media.name;
-            player.poster(`${TMDB_IMAGE_BASE_POSTER}${media.poster_path}`);
-            streamsList.innerHTML = `<p class="text-gray-400">Fetching movie details...</p>`;
-            try {
-                let imdbId;
-                let mediaTypeForProvider = media.media_type === 'tv' ? 'series' : 'movie';
-                
-                if (media.media_type === 'movie') {
-                    const detailsUrl = `${TMDB_API_BASE}/movie/${media.id}?api_key=${TMDB_API_KEY}`;
-                    const response = await fetch(detailsUrl);
-                    if (!response.ok) throw new Error("Could not fetch movie details.");
-                    const data = await response.json();
-                    imdbId = data.imdb_id;
-                } else { // tv
-                    const detailsUrl = `${TMDB_API_BASE}/tv/${media.id}/external_ids?api_key=${TMDB_API_KEY}`;
-                    const response = await fetch(detailsUrl);
-                    if (!response.ok) throw new Error("Could not fetch series details.");
-                    const data = await response.json();
-                    imdbId = data.imdb_id;
-                }
+            serversList.innerHTML = '';
+            playerIframe.src = 'about:blank';
+            tvControls.style.display = 'none';
 
-                if (imdbId) {
-                    await fetchAndDisplayStreams(imdbId, mediaTypeForProvider);
-                } else {
-                    throw new Error("IMDb ID not found for this content.");
+            SERVERS.forEach((server, index) => {
+                const serverBtn = document.createElement('button');
+                serverBtn.textContent = server.name;
+                serverBtn.className = 'server-btn bg-gray-700 hover:bg-red-700 text-gray-200 font-semibold py-2 px-4 rounded-lg transition-colors';
+                serverBtn.addEventListener('click', () => {
+                    loadStream(server);
+                    document.querySelectorAll('.server-btn').forEach(btn => btn.classList.remove('active'));
+                    serverBtn.classList.add('active');
+                });
+                serversList.appendChild(serverBtn);
+                
+                if (index === 0) {
+                    serverBtn.click();
                 }
-            } catch (error) {
-                console.error("IMDb fetch error:", error);
-                streamsList.innerHTML = `<p class="text-red-400">${error.message}</p>`;
+            });
+        }
+
+        function loadStream(server) {
+            activeServer = server;
+            if (!currentMedia) return;
+
+            if (currentMedia.media_type === 'tv') {
+                if (server.type === 'autoembed') {
+                    tvControls.style.display = 'flex';
+                    seasonInput.value = 1;
+                    episodeInput.value = 1;
+                    loadSelectedEpisode();
+                } else {
+                    tvControls.style.display = 'none';
+                    const url = server.tvUrl.replace('{id}', currentMedia.id);
+                    playerIframe.src = url;
+                }
+            } else { // Movie
+                tvControls.style.display = 'none';
+                const url = server.movieUrl.replace('{id}', currentMedia.id);
+                playerIframe.src = url;
             }
+        }
+
+        function loadSelectedEpisode() {
+            if (!currentMedia || currentMedia.media_type !== 'tv' || !activeServer || activeServer.type !== 'autoembed') return;
+            const season = seasonInput.value;
+            const episode = episodeInput.value;
+            const url = activeServer.tvUrl.replace('{id}', currentMedia.id).replace('{season}', season).replace('{episode}', episode);
+            playerIframe.src = url;
         }
 
         async function fetchCombinedAndDisplay(movieEndpoint, tvEndpoint, title) {
@@ -429,22 +270,23 @@
             }
         }
         
-        async function fetchAndDisplay(endpoint, title) {
+        async function fetchAndDisplay(endpoint, title, mediaType) {
             try {
                 const url = `${TMDB_API_BASE}/${endpoint}?api_key=${TMDB_API_KEY}&language=en-US&page=1`;
                 const response = await fetch(url);
                 if (!response.ok) throw new Error(`TMDB API Error: ${response.statusText}`);
                 const data = await response.json();
                 if (data.results && data.results.length > 0) {
-                     const contentResults = data.results.filter(item => item.media_type === 'movie' || item.media_type === 'tv');
-
+                     const contentResults = data.results.map(item => ({...item, media_type: mediaType}));
                      createMovieRow(title, contentResults);
                      
-                     const heroItem = contentResults[0];
-                     if (heroItem && heroItem.backdrop_path) {
-                        heroSection.style.backgroundImage = `url('${TMDB_IMAGE_BASE_BACKDROP}${heroItem.backdrop_path}')`;
-                        heroTitle.textContent = heroItem.title || heroItem.name;
-                        heroOverview.textContent = heroItem.overview;
+                     if (endpoint.includes('trending/movie')) {
+                         const heroItem = contentResults[0];
+                         if (heroItem && heroItem.backdrop_path) {
+                            heroSection.style.backgroundImage = `url('${TMDB_IMAGE_BASE_BACKDROP}${heroItem.backdrop_path}')`;
+                            heroTitle.textContent = heroItem.title || heroItem.name;
+                            heroOverview.textContent = heroItem.overview;
+                         }
                      }
                 }
             } catch (error) {
@@ -497,9 +339,9 @@
             mediaItems.forEach(media => {
                 if (!media.poster_path) return;
                 const movieCard = document.createElement('div');
-                movieCard.className = 'movie-card flex-shrink-0 w-40 sm:w-44 md:w-48 lg:w-56 xl:w-64 bg-gray-800 rounded-lg overflow-hidden cursor-pointer';
+                movieCard.className = 'movie-card flex-shrink-0 w-32 sm:w-36 md:w-40 lg:w-44 xl:w-52 bg-gray-800 rounded-lg overflow-hidden cursor-pointer';
                 movieCard.innerHTML = `<img src="${TMDB_IMAGE_BASE_POSTER}${media.poster_path}" alt="${media.title || media.name}" class="w-full h-auto">`;
-                movieCard.addEventListener('click', () => loadStreamsForMedia(media));
+                movieCard.addEventListener('click', () => loadPlayerForMedia(media));
                 movieCard.addEventListener('mouseenter', () => debouncedUpdateHero(media));
                 carousel.appendChild(movieCard);
             });
@@ -517,10 +359,7 @@
         function debounce(func, wait) {
             let timeout;
             return function executedFunction(...args) {
-                const later = () => {
-                    clearTimeout(timeout);
-                    func(...args);
-                };
+                const later = () => { clearTimeout(timeout); func(...args); };
                 clearTimeout(timeout);
                 timeout = setTimeout(later, wait);
             };
@@ -536,32 +375,13 @@
 
         const debouncedUpdateHero = debounce(updateHero, 300);
 
-        function parseStreamInfo(stream) {
-            const lines = stream.title.split('\n');
-            const fileName = lines[0];
-            const sizeMatch = lines[1] ? lines[1].match(/💾\s*([\d.]+\s*\w+)/) : null;
-            const seedersMatch = lines[2] ? lines[2].match(/👤\s*(\d+)/) : null;
-            const source = lines[3] || 'Unknown';
-            const qualityMatch = fileName.match(/(\d{3,4}p|4k|2160p|720p)/i);
-            const audioMatch = fileName.match(/(AAC|DTS|Atmos|TrueHD|5\.1|7\.1)/i);
-            
-            return {
-                fileName: fileName,
-                quality: qualityMatch ? qualityMatch[0].toUpperCase().replace('P','p') : '',
-                size: sizeMatch ? sizeMatch[1] : 'N/A',
-                seeders: seedersMatch ? seedersMatch[1] : 'N/A',
-                source: source,
-                audio: audioMatch ? audioMatch[0].toUpperCase() : '',
-                infoHash: stream.infoHash
-            };
-        }
         function openModal(modal) {
             modal.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
         }
         function closeModal() {
-            player.pause();
-            player.reset();
+            playerIframe.src = 'about:blank'; // Stop video on close
+            currentMedia = null; // Clear current media
             playerModal.classList.add('hidden');
             document.body.style.overflow = 'auto';
         }
@@ -573,10 +393,11 @@
         // --- INITIALIZATION ---
         function initializeApp() {
              if (!TMDB_API_KEY) { displayError("CRITICAL: TMDB API Key not set."); return; }
-             if (!RD_API_KEY) { displayError("CRITICAL: Real-Debrid API Key not set."); return; }
-            fetchAndDisplay('trending/all/week', 'Trending Movies & Series');
+            fetchAndDisplay('trending/movie/week', 'Trending Movies', 'movie');
+            fetchAndDisplay('trending/tv/week', 'Trending Series', 'tv');
             fetchCombinedAndDisplay('movie/popular', 'tv/popular', 'Popular Movies & Series');
-            fetchCombinedAndDisplay('movie/now_playing', 'tv/on_the_air', 'Newest Movies & Series');
+            fetchAndDisplay('movie/now_playing', 'Newest Movies', 'movie');
+            fetchAndDisplay('tv/on_the_air', 'Newest TV Series', 'tv');
         }
 
         initializeApp();
