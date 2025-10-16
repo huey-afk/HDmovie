@@ -33,6 +33,12 @@
         .poster-card {
             transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
             cursor: pointer;
+            aspect-ratio: 2/3; 
+        }
+        .poster-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; 
         }
         .poster-card:hover {
             transform: scale(1.05);
@@ -60,27 +66,69 @@
             -ms-overflow-style: none;  /* IE 10+ */
         }
         .movie-carousel::-webkit-scrollbar { display: none; } /* Safari and Chrome */
+        
+        /* Dropdown styles */
+        .dropdown-content {
+            display: none;
+            grid-template-columns: repeat(2, 1fr);
+        }
     </style>
 </head>
 <body class="text-gray-200">
 
     <header class="p-4 md:p-6 sticky top-0 bg-[#1a202c]/80 backdrop-blur-sm z-30">
         <div class="max-w-screen-2xl mx-auto flex justify-between items-center">
-            <h1 id="pageTitle" class="text-2xl md:text-3xl font-extrabold text-red-600 tracking-wider cursor-pointer">STREAMFLIX</h1>
-            <div class="flex items-center gap-6">
-                <div class="relative" id="categoryDropdownContainer">
-                    <button id="categoryBtn" class="flex items-center gap-2 text-white font-semibold hover:text-red-500 transition-colors">
-                        <span>Categories</span>
-                        <i data-lucide="chevron-down" class="w-4 h-4"></i>
-                    </button>
-                    <div id="categoryDropdown" class="hidden absolute right-0 mt-2 w-56 bg-gray-800 rounded-md shadow-lg z-50 overflow-hidden">
-                        <!-- Links will be injected here -->
+            <div class="flex items-center gap-8">
+                <h1 id="pageTitle" class="text-2xl md:text-3xl font-extrabold text-red-600 tracking-wider cursor-pointer">STREAMFLIX</h1>
+                <nav class="hidden md:flex items-center gap-6 text-white font-semibold">
+                    <!-- Movie Dropdown -->
+                    <div class="dropdown relative">
+                        <button class="flex items-center gap-1 hover:text-red-500"><span>Movie</span><i data-lucide="chevron-down" class="w-4 h-4"></i></button>
+                        <div class="dropdown-content absolute top-full mt-2 p-4 bg-gray-800 rounded-md shadow-lg w-96 gap-4">
+                           <a href="#" class="group" data-endpoint="movie/popular" data-type="movie" data-title="Popular Movies">
+                               <div class="font-bold group-hover:text-red-500">Popular</div>
+                               <div class="text-xs text-gray-400">Most watched movies right now</div>
+                           </a>
+                           <a href="#" class="group" data-endpoint="movie/top_rated" data-type="movie" data-title="Top Rated Movies">
+                               <div class="font-bold group-hover:text-red-500">Top Rated</div>
+                               <div class="text-xs text-gray-400">Highest rated movies by viewers</div>
+                           </a>
+                           <a href="#" class="group" data-endpoint="movie/upcoming" data-type="movie" data-title="Upcoming Movies">
+                               <div class="font-bold group-hover:text-red-500">Coming Soon</div>
+                               <div class="text-xs text-gray-400">Upcoming movie releases</div>
+                           </a>
+                        </div>
                     </div>
-                </div>
-                <div class="flex items-center gap-4 bg-gray-900/50 border border-gray-700 rounded-full px-3 py-1.5">
-                    <input type="text" id="searchInput" placeholder="Search..." class="bg-transparent text-white placeholder-gray-400 focus:outline-none w-32 sm:w-48">
-                    <button id="searchBtn"><i data-lucide="search" class="w-5 h-5 text-gray-400 hover:text-white"></i></button>
-                </div>
+                    <!-- TV Show Dropdown -->
+                     <div class="dropdown relative">
+                        <button class="flex items-center gap-1 hover:text-red-500"><span>TV Show</span><i data-lucide="chevron-down" class="w-4 h-4"></i></button>
+                        <div class="dropdown-content absolute top-full mt-2 p-4 bg-gray-800 rounded-md shadow-lg w-96 gap-4">
+                           <a href="#" class="group" data-endpoint="tv/popular" data-type="tv" data-title="Popular TV Shows">
+                               <div class="font-bold group-hover:text-red-500">Popular</div>
+                               <div class="text-xs text-gray-400">Most watched series right now</div>
+                           </a>
+                           <a href="#" class="group" data-endpoint="tv/top_rated" data-type="tv" data-title="Top Rated TV Shows">
+                               <div class="font-bold group-hover:text-red-500">Top Rated</div>
+                               <div class="text-xs text-gray-400">Highest rated series by viewers</div>
+                           </a>
+                           <a href="#" class="group" data-endpoint="tv/on_the_air" data-type="tv" data-title="On The Air">
+                               <div class="font-bold group-hover:text-red-500">On The Air</div>
+                               <div class="text-xs text-gray-400">Currently airing TV shows</div>
+                           </a>
+                        </div>
+                    </div>
+                     <!-- Genre Dropdown -->
+                    <div class="dropdown relative">
+                        <button class="flex items-center gap-1 hover:text-red-500"><span>Genre</span><i data-lucide="chevron-down" class="w-4 h-4"></i></button>
+                        <div id="genreDropdown" class="dropdown-content absolute top-full mt-2 p-4 bg-gray-800 rounded-md shadow-lg w-96 gap-2 text-sm">
+                           <!-- Genres will be injected here -->
+                        </div>
+                    </div>
+                </nav>
+            </div>
+            <div class="flex items-center gap-4 bg-gray-900/50 border border-gray-700 rounded-full px-3 py-1.5">
+                <input type="text" id="searchInput" placeholder="Search..." class="bg-transparent text-white placeholder-gray-400 focus:outline-none w-32 sm:w-48">
+                <button id="searchBtn"><i data-lucide="search" class="w-5 h-5 text-gray-400 hover:text-white"></i></button>
             </div>
         </div>
     </header>
@@ -122,6 +170,7 @@
             { name: "Server 2 (v3)", type: 'vidsrc', movieUrl: "https://vidsrc.cc/v3/embed/movie/{id}", tvUrl: "https://vidsrc.cc/v3/embed/tv/{id}" },
             { name: "Server 3 (Auto)", type: 'autoembed', movieUrl: "https://player.autoembed.cc/embed/movie/{id}", tvUrl: "https://player.autoembed.cc/embed/tv/{id}/{season}/{episode}" }
         ];
+        const ANIMATION_GENRE_ID = 16;
 
         // --- CONSTANTS ---
         const TMDB_API_BASE = 'https://api.themoviedb.org/3';
@@ -254,16 +303,11 @@
             isLoading = true;
             loadingIndicator.style.display = 'block';
             try {
-                let url;
-                if (currentGridEndpoint.startsWith('search')) {
-                    url = `${TMDB_API_BASE}/${currentGridEndpoint}&page=${currentPage}`;
+                let url = `${TMDB_API_BASE}/${currentGridEndpoint}`;
+                if (url.includes('?')) {
+                    url += `&api_key=${TMDB_API_KEY}&page=${currentPage}`;
                 } else {
-                    let baseUrl = `${TMDB_API_BASE}/${currentGridEndpoint}`;
-                    if(baseUrl.includes('?')) {
-                        url = `${baseUrl}&api_key=${TMDB_API_KEY}&page=${currentPage}`;
-                    } else {
-                        url = `${baseUrl}?api_key=${TMDB_API_KEY}&page=${currentPage}`;
-                    }
+                    url += `?api_key=${TMDB_API_KEY}&page=${currentPage}`;
                 }
                 const res = await fetch(url);
                 const data = await res.json();
@@ -273,7 +317,7 @@
                     if (!item.poster_path) return;
                     const card = document.createElement('div');
                     card.className = 'poster-card rounded-lg overflow-hidden bg-gray-800';
-                    card.innerHTML = `<img src="${TMDB_IMAGE_BASE_POSTER}${item.poster_path}" alt="${item.title || item.name}" class="w-full h-auto">`;
+                    card.innerHTML = `<img src="${TMDB_IMAGE_BASE_POSTER}${item.poster_path}" alt="${item.title || item.name}">`;
                     card.onclick = () => showDetailsView(item);
                     contentGrid.appendChild(card);
                 });
@@ -284,7 +328,7 @@
         
         window.onscroll = () => { if (gridView.style.display === 'block' && (window.innerHeight + window.scrollY) >= document.body.offsetHeight - 200) { loadGridContent(); } };
 
-        async function fetchAndDisplay(endpoint, title, mediaType) {
+        async function fetchAndDisplay(endpoint, title, mediaType, excludeAnime = false) {
             try {
                 let url = `${TMDB_API_BASE}/${endpoint}`;
                 if (url.includes('?')) {
@@ -296,7 +340,12 @@
                 const res = await fetch(url);
                 const data = await res.json();
                 if (data.results && data.results.length > 0) {
-                     const contentResults = data.results.map(item => ({...item, media_type: mediaType}));
+                     let contentResults = data.results.map(item => ({...item, media_type: mediaType}));
+                     
+                     if(excludeAnime) {
+                         contentResults = contentResults.filter(item => !item.genre_ids.includes(ANIMATION_GENRE_ID));
+                     }
+
                      createMovieRow(title, contentResults, endpoint, mediaType);
                      
                      if (endpoint.includes('trending/movie')) {
@@ -326,7 +375,7 @@
                 if (!media.poster_path) return;
                 const movieCard = document.createElement('div');
                 movieCard.className = 'poster-card flex-shrink-0 w-40 sm:w-44 md:w-48 bg-gray-800 rounded-lg overflow-hidden';
-                movieCard.innerHTML = `<img src="${TMDB_IMAGE_BASE_POSTER}${media.poster_path}" alt="${media.title || media.name}" class="w-full h-auto">`;
+                movieCard.innerHTML = `<img src="${TMDB_IMAGE_BASE_POSTER}${media.poster_path}" alt="${media.title || media.name}">`;
                 movieCard.onclick = () => showDetailsView(media);
                 carousel.appendChild(movieCard);
             });
@@ -364,35 +413,93 @@
             }
         }
 
-        // --- CATEGORY DROPDOWN ---
-        function buildCategoryDropdown() {
-            const dropdown = document.getElementById('categoryDropdown');
-            dropdown.innerHTML = '';
-            const categories = document.querySelectorAll('#movieRows h2');
-            categories.forEach(cat => {
-                const link = document.createElement('a');
-                link.href = `#${cat.parentElement.parentElement.id}`;
-                link.textContent = cat.textContent;
-                link.className = 'block px-4 py-2 text-sm text-gray-300 hover:bg-red-600 hover:text-white';
-                link.onclick = (e) => {
+        // --- Navigation Dropdown Logic ---
+        function setupDropdowns() {
+            const dropdownLinks = document.querySelectorAll('header .dropdown-content a');
+            dropdownLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
                     e.preventDefault();
-                    document.getElementById(cat.parentElement.parentElement.id)?.scrollIntoView({ behavior: 'smooth' });
-                    dropdown.classList.add('hidden');
-                };
-                dropdown.appendChild(link);
+                    const endpoint = link.dataset.endpoint;
+                    const mediaType = link.dataset.type;
+                    const title = link.dataset.title;
+                    document.querySelectorAll('.dropdown-content').forEach(d => d.style.display = 'none');
+                    showGridView(endpoint, title, mediaType);
+                });
             });
 
-            const dropdownBtn = document.getElementById('categoryBtn');
-            const dropdownContainer = document.getElementById('categoryDropdownContainer');
-            dropdownBtn.onclick = (e) => {
-                e.stopPropagation();
-                dropdown.classList.toggle('hidden');
-            };
+            const dropdowns = document.querySelectorAll('.dropdown');
+            dropdowns.forEach(dropdown => {
+                const button = dropdown.querySelector('button');
+                const content = dropdown.querySelector('.dropdown-content');
+
+                button.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isVisible = content.style.display === 'grid';
+                    document.querySelectorAll('.dropdown-content').forEach(d => d.style.display = 'none');
+                    if (!isVisible) {
+                        content.style.display = 'grid';
+                    }
+                });
+            });
+
             window.addEventListener('click', (e) => {
-                if (!dropdownContainer.contains(e.target)) {
-                    dropdown.classList.add('hidden');
+                let isInsideDropdown = false;
+                dropdowns.forEach(dropdown => {
+                    if (dropdown.contains(e.target)) {
+                        isInsideDropdown = true;
+                    }
+                });
+                if (!isInsideDropdown) {
+                    document.querySelectorAll('.dropdown-content').forEach(d => d.style.display = 'none');
                 }
             });
+        }
+        
+        async function buildGenreDropdown() {
+            const dropdown = document.getElementById('genreDropdown');
+            try {
+                const url = `${TMDB_API_BASE}/genre/movie/list?api_key=${TMDB_API_KEY}`;
+                const res = await fetch(url);
+                const data = await res.json();
+                
+                const allGenres = [...data.genres, 
+                    { id: ANIMATION_GENRE_ID, name: 'Anime' },
+                    { id: 'tl', name: 'Tagalog' }
+                ];
+                
+                allGenres.sort((a, b) => a.name.localeCompare(b.name));
+
+                dropdown.innerHTML = ''; 
+                
+                allGenres.forEach(genre => {
+                    const link = document.createElement('a');
+                    link.href = '#';
+                    link.textContent = genre.name;
+                    link.className = "hover:text-red-500 transition-colors";
+                    link.onclick = (e) => {
+                        e.preventDefault();
+                        dropdown.style.display = 'none';
+                        let endpoint, title, mediaType;
+                        if (genre.name === 'Anime') {
+                            endpoint = `discover/tv?with_genres=16`;
+                            title = `Anime Series`;
+                            mediaType = 'tv';
+                        } else if (genre.id === 'tl') {
+                            endpoint = `discover/movie?with_original_language=tl`;
+                            title = `Tagalog Movies`;
+                            mediaType = 'movie';
+                        } else {
+                            endpoint = `discover/movie?with_genres=${genre.id}`;
+                            title = `${genre.name} Movies`;
+                            mediaType = 'movie';
+                        }
+                        showGridView(endpoint, title, mediaType);
+                    };
+                    dropdown.appendChild(link);
+                });
+            } catch(e) {
+                dropdown.innerHTML = 'Could not load genres.';
+            }
         }
 
 
@@ -400,18 +507,19 @@
         async function initializeApp() {
              if (!TMDB_API_KEY) { return; }
              showMainView();
+             setupDropdowns();
+             buildGenreDropdown();
              movieRows.innerHTML = '';
              loadContinueWatching();
              await Promise.all([
-                 fetchAndDisplay('movie/now_playing', 'Newest Movies', 'movie'),
-                 fetchAndDisplay('tv/on_the_air', 'Newest TV Series', 'tv'),
-                 fetchAndDisplay('movie/popular', 'Popular Movies', 'movie'),
-                 fetchAndDisplay('tv/popular', 'Popular Series', 'tv'),
-                 fetchAndDisplay('trending/movie/week', 'Trending Movies', 'movie'),
-                 fetchAndDisplay('trending/tv/week', 'Trending Series', 'tv'),
-                 fetchAndDisplay('discover/movie?with_original_language=tl', 'Filipino / Tagalog Movies', 'movie')
+                 fetchAndDisplay('trending/movie/week', 'Trending Movies', 'movie', true), // Exclude Anime
+                 fetchAndDisplay('trending/tv/week', 'Trending Series', 'tv', true), // Exclude Anime
+                 fetchAndDisplay('movie/popular', 'Popular Movies', 'movie', true), // Exclude Anime
+                 fetchAndDisplay('tv/popular', 'Popular Series', 'tv', true), // Exclude Anime
+                 fetchAndDisplay('movie/now_playing', 'Newest Movies', 'movie', true), // Exclude Anime
+                 fetchAndDisplay('tv/on_the_air', 'Newest TV Series', 'tv', true), // Exclude Anime
+                 fetchAndDisplay('discover/tv?with_genres=16&sort_by=popularity.desc', 'Anime', 'tv') // Anime-only section
              ]);
-             buildCategoryDropdown(); // Build dropdown after all rows are created
         }
 
         searchBtn.addEventListener('click', handleSearch);
