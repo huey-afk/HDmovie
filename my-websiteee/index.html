@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StreamFlix - A Multi-Server Player</title>
+    <title>StreamFlix - A New Experience</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,149 +12,115 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #141414; /* Netflix black */
+            background-color: #1a202c;
         }
         #heroSection {
             transition: background-image 0.5s ease-in-out;
         }
         .hero-gradient {
-            background-image: linear-gradient(to top, #141414, rgba(20, 20, 20, 0) 50%);
+            background-image: linear-gradient(to top, #1a202c, rgba(26, 32, 44, 0) 50%);
         }
-        .movie-card {
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        .main-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1.5rem;
         }
-        .movie-card:hover {
+        @media (min-width: 640px) {
+            .main-grid {
+                grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            }
+        }
+        .poster-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        .poster-card:hover {
             transform: scale(1.05);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
             z-index: 10;
         }
+        .details-view {
+            background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
+        }
+        .details-gradient {
+            background: linear-gradient(to right, #1a202c 20%, rgba(26, 32, 44, 0.8) 50%, rgba(26, 32, 44, 0) 100%);
+        }
+        .server-list {
+            scrollbar-width: thin;
+            scrollbar-color: #4A5568 #2D3748;
+        }
+        .server-list::-webkit-scrollbar { width: 8px; }
+        .server-list::-webkit-scrollbar-track { background: #2D3748; }
+        .server-list::-webkit-scrollbar-thumb { background-color: #4A5568; border-radius: 4px; }
+        .server-item.active { background-color: #e50914; border-left-color: #fff; }
         .movie-carousel {
             scrollbar-width: none; /* Firefox */
-            -ms-overflow-style: none;  /* Internet Explorer 10+ */
+            -ms-overflow-style: none;  /* IE 10+ */
         }
-        .movie-carousel::-webkit-scrollbar {
-            display: none; /* Safari and Chrome */
-        }
-        .modal.hidden {
-            display: none;
-        }
-        .carousel-container:hover .scroll-btn {
-            opacity: 1;
-        }
-        .scroll-btn {
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            width: 50px;
-            background-color: rgba(0, 0, 0, 0.5);
-            color: white;
-            border: none;
-            cursor: pointer;
-            z-index: 20;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            transition: opacity 0.2s ease-in-out;
-            padding-bottom: 1rem; /* To align with the padding of the carousel */
-        }
-        .scroll-btn.left {
-            left: 0;
-            border-top-right-radius: 0.5rem;
-            border-bottom-right-radius: 0.5rem;
-        }
-        .scroll-btn.right {
-            right: 0;
-            border-top-left-radius: 0.5rem;
-            border-bottom-left-radius: 0.5rem;
-        }
-        #player-iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-        .server-btn.active {
-            background-color: #e50914;
-            color: white;
-            font-weight: 700;
-        }
+        .movie-carousel::-webkit-scrollbar { display: none; } /* Safari and Chrome */
     </style>
 </head>
 <body class="text-gray-200">
 
-    <!-- Header / Navbar -->
-    <header class="fixed top-0 left-0 right-0 z-50 p-4 transition-colors duration-300 bg-gradient-to-b from-black/80 to-transparent">
-        <div class="w-full mx-auto flex items-center justify-between px-4 md:px-8">
-            <h1 class="text-2xl md:text-3xl font-extrabold text-red-600 tracking-wider">STREAMFLIX</h1>
-            <div class="flex items-center gap-4">
-                <div class="flex items-center gap-4 bg-gray-900/50 border border-gray-700 rounded-full px-3 py-1.5">
-                    <input type="text" id="searchInput" placeholder="Search movies & series..." class="bg-transparent text-white placeholder-gray-400 focus:outline-none w-32 sm:w-48 md:w-64">
-                    <button id="searchBtn">
-                        <i data-lucide="search" class="w-5 h-5 text-gray-400 hover:text-white transition-colors"></i>
+    <header class="p-4 md:p-6 sticky top-0 bg-[#1a202c]/80 backdrop-blur-sm z-30">
+        <div class="max-w-screen-2xl mx-auto flex justify-between items-center">
+            <h1 id="pageTitle" class="text-2xl md:text-3xl font-extrabold text-red-600 tracking-wider cursor-pointer">STREAMFLIX</h1>
+            <div class="flex items-center gap-6">
+                <div class="relative" id="categoryDropdownContainer">
+                    <button id="categoryBtn" class="flex items-center gap-2 text-white font-semibold hover:text-red-500 transition-colors">
+                        <span>Categories</span>
+                        <i data-lucide="chevron-down" class="w-4 h-4"></i>
                     </button>
+                    <div id="categoryDropdown" class="hidden absolute right-0 mt-2 w-56 bg-gray-800 rounded-md shadow-lg z-50 overflow-hidden">
+                        <!-- Links will be injected here -->
+                    </div>
+                </div>
+                <div class="flex items-center gap-4 bg-gray-900/50 border border-gray-700 rounded-full px-3 py-1.5">
+                    <input type="text" id="searchInput" placeholder="Search..." class="bg-transparent text-white placeholder-gray-400 focus:outline-none w-32 sm:w-48">
+                    <button id="searchBtn"><i data-lucide="search" class="w-5 h-5 text-gray-400 hover:text-white"></i></button>
                 </div>
             </div>
         </div>
     </header>
 
-    <main class="pt-24">
-        <!-- Hero Section -->
-        <section id="heroSection" class="relative h-[40vh] md:h-[50vh] flex items-end text-white p-6 md:p-12" style="background-image: url('https://placehold.co/1920x1080/141414/141414?text='); background-size: cover; background-position: center top;">
-             <div class="absolute inset-0 hero-gradient"></div>
-             <div class="relative z-10 max-w-xl lg:max-w-3xl px-4 md:px-8">
-                <h2 id="heroTitle" class="text-3xl md:text-5xl font-extrabold drop-shadow-lg">Loading...</h2>
-                <p id="heroOverview" class="mt-4 text-xs md:text-sm max-w-prose drop-shadow-md">
-                    Fetching the latest content for you.
-                </p>
-            </div>
-        </section>
-        
-        <div id="errorMessage" class="my-4 text-red-500 text-center font-medium container mx-auto"></div>
-        
-        <!-- Movie Rows Container -->
-        <div id="movieRows" class="space-y-12 py-8 px-4 md:px-8">
-             <!-- Rows will be injected here -->
-        </div>
-    </main>
-
-    <!-- Player Modal -->
-    <div id="playerModal" class="modal hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="relative w-full max-w-screen-xl bg-gray-900 rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh]">
-            <button id="closePlayerModalBtn" class="absolute top-3 right-3 z-20 text-gray-400 hover:text-white bg-black/50 rounded-full p-1">
-                <i data-lucide="x" class="w-7 h-7"></i>
-            </button>
-            <div id="playerContainer" class="w-full aspect-video bg-black flex items-center justify-center">
-                <iframe id="player-iframe" allowfullscreen></iframe>
-            </div>
-            <div class="flex flex-col p-4 bg-gray-800">
-                <h2 id="modalMovieTitle" class="text-2xl font-bold text-white mb-4"></h2>
-                 <div id="serversList" class="flex flex-wrap gap-2 mb-4">
-                    <!-- Server buttons will be injected here -->
+    <!-- Main Carousel View -->
+    <div id="mainView">
+        <main>
+            <section id="heroSection" class="relative h-[40vh] md:h-[50vh] flex items-end text-white p-6 md:p-12" style="background-image: url('https://placehold.co/1920x1080/1a202c/1a202c?text='); background-size: cover; background-position: center top;">
+                 <div class="absolute inset-0 hero-gradient"></div>
+                 <div class="relative z-10 max-w-xl lg:max-w-3xl">
+                    <h2 id="heroTitle" class="text-3xl md:text-5xl font-extrabold drop-shadow-lg">Loading...</h2>
+                    <p id="heroOverview" class="mt-4 text-xs md:text-sm max-w-prose drop-shadow-md">Fetching the latest content for you.</p>
                 </div>
-                <!-- TV Show Controls -->
-                <div id="tvControls" class="hidden items-center gap-4">
-                     <div>
-                        <label for="seasonInput" class="text-sm font-medium text-gray-400">Season</label>
-                        <input type="number" id="seasonInput" value="1" min="1" class="w-20 bg-gray-700 border border-gray-600 text-white rounded-lg px-2 py-1 focus:ring-2 focus:ring-red-500 focus:outline-none">
-                     </div>
-                     <div>
-                        <label for="episodeInput" class="text-sm font-medium text-gray-400">Episode</label>
-                        <input type="number" id="episodeInput" value="1" min="1" class="w-20 bg-gray-700 border border-gray-600 text-white rounded-lg px-2 py-1 focus:ring-2 focus:ring-red-500 focus:outline-none">
-                     </div>
-                     <button id="loadEpisodeBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg self-end">Load Episode</button>
-                </div>
-            </div>
-        </div>
+            </section>
+            <div id="movieRows" class="space-y-12 py-8 px-4 md:px-6 max-w-screen-2xl mx-auto"></div>
+        </main>
     </div>
-    
+
+    <!-- Grid View -->
+    <div id="gridView" class="hidden">
+        <main class="p-4 md:p-6 max-w-screen-2xl mx-auto">
+            <button id="backToMainBtn" class="flex items-center gap-2 mb-6 font-semibold hover:text-red-500"><i data-lucide="arrow-left"></i> Back to Home</button>
+            <h2 id="gridTitle" class="text-2xl font-bold mb-6"></h2>
+            <div id="contentGrid" class="main-grid"></div>
+            <div id="loadingIndicator" class="text-center py-10">Loading more...</div>
+        </main>
+    </div>
+
+    <!-- Details View -->
+    <div id="detailsView" class="hidden fixed inset-0 bg-[#1a202c] z-50 overflow-y-auto"></div>
+
     <script>
         lucide.createIcons();
-        
+
         // --- CONFIGURATION ---
         const TMDB_API_KEY = 'a1e72fd93ed59f56e6332813b9f8dcae';
         const SERVERS = [
-            { name: "Server 1", type: 'vidsrc', movieUrl: "https://vidsrc.cc/v2/embed/movie/{id}", tvUrl: "https://vidsrc.cc/v2/embed/tv/{id}" },
-            { name: "Server 2", type: 'vidsrc', movieUrl: "https://vidsrc.cc/v3/embed/movie/{id}", tvUrl: "https://vidsrc.cc/v3/embed/tv/{id}" },
-            { name: "Server 3", type: 'autoembed', movieUrl: "https://player.autoembed.cc/embed/movie/{id}", tvUrl: "https://player.autoembed.cc/embed/tv/{id}/{season}/{episode}" }
+            { name: "Server 1 (v2)", type: 'vidsrc', movieUrl: "https://vidsrc.cc/v2/embed/movie/{id}", tvUrl: "https://vidsrc.cc/v2/embed/tv/{id}" },
+            { name: "Server 2 (v3)", type: 'vidsrc', movieUrl: "https://vidsrc.cc/v3/embed/movie/{id}", tvUrl: "https://vidsrc.cc/v3/embed/tv/{id}" },
+            { name: "Server 3 (Auto)", type: 'autoembed', movieUrl: "https://player.autoembed.cc/embed/movie/{id}", tvUrl: "https://player.autoembed.cc/embed/tv/{id}/{season}/{episode}" }
         ];
 
         // --- CONSTANTS ---
@@ -163,122 +129,175 @@
         const TMDB_IMAGE_BASE_BACKDROP = 'https://image.tmdb.org/t/p/original';
 
         // --- DOM Elements ---
+        const mainView = document.getElementById('mainView');
+        const gridView = document.getElementById('gridView');
+        const detailsView = document.getElementById('detailsView');
         const searchInput = document.getElementById('searchInput');
         const searchBtn = document.getElementById('searchBtn');
-        const errorMessage = document.getElementById('errorMessage');
-        const movieRowsContainer = document.getElementById('movieRows');
-        const playerModal = document.getElementById('playerModal');
-        const closePlayerModalBtn = document.getElementById('closePlayerModalBtn');
-        const serversList = document.getElementById('serversList');
-        const modalMovieTitle = document.getElementById('modalMovieTitle');
+        const contentGrid = document.getElementById('contentGrid');
+        const gridTitle = document.getElementById('gridTitle');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const movieRows = document.getElementById('movieRows');
         const heroSection = document.getElementById('heroSection');
         const heroTitle = document.getElementById('heroTitle');
         const heroOverview = document.getElementById('heroOverview');
-        const playerIframe = document.getElementById('player-iframe');
-        const tvControls = document.getElementById('tvControls');
-        const seasonInput = document.getElementById('seasonInput');
-        const episodeInput = document.getElementById('episodeInput');
-        const loadEpisodeBtn = document.getElementById('loadEpisodeBtn');
-        
-        let currentMedia = null;
-        let activeServer = null;
+        document.getElementById('pageTitle').onclick = showMainView;
 
-        // --- EVENT LISTENERS ---
-        searchBtn.addEventListener('click', searchContent);
-        searchInput.addEventListener('keyup', e => e.key === 'Enter' && searchContent());
-        closePlayerModalBtn.addEventListener('click', closeModal);
-        playerModal.addEventListener('click', e => e.target === playerModal && closeModal());
-        loadEpisodeBtn.addEventListener('click', loadSelectedEpisode);
-        
-        // --- CORE LOGIC ---
 
-        function loadPlayerForMedia(media) {
-            openModal(playerModal);
-            currentMedia = media;
-            modalMovieTitle.textContent = media.title || media.name;
-            serversList.innerHTML = '';
-            playerIframe.src = 'about:blank';
-            tvControls.style.display = 'none';
+        let currentPage = 1;
+        let isLoading = false;
+        let currentGridEndpoint = '';
+        let currentGridMediaType = '';
+        let lastView = 'main';
 
-            SERVERS.forEach((server, index) => {
-                const serverBtn = document.createElement('button');
-                serverBtn.textContent = server.name;
-                serverBtn.className = 'server-btn bg-gray-700 hover:bg-red-700 text-gray-200 font-semibold py-2 px-4 rounded-lg transition-colors';
-                serverBtn.addEventListener('click', () => {
-                    loadStream(server);
-                    document.querySelectorAll('.server-btn').forEach(btn => btn.classList.remove('active'));
-                    serverBtn.classList.add('active');
-                });
-                serversList.appendChild(serverBtn);
-                
-                if (index === 0) {
-                    serverBtn.click();
-                }
-            });
+        // --- VIEW MANAGEMENT ---
+        function showMainView() {
+            mainView.style.display = 'block';
+            gridView.style.display = 'none';
+            detailsView.style.display = 'none';
+            document.body.style.overflow = 'auto'; // Ensure scroll is enabled
         }
 
-        function loadStream(server) {
-            activeServer = server;
-            if (!currentMedia) return;
-
-            if (currentMedia.media_type === 'tv') {
-                if (server.type === 'autoembed') {
-                    tvControls.style.display = 'flex';
-                    seasonInput.value = 1;
-                    episodeInput.value = 1;
-                    loadSelectedEpisode();
-                } else {
-                    tvControls.style.display = 'none';
-                    const url = server.tvUrl.replace('{id}', currentMedia.id);
-                    playerIframe.src = url;
-                }
-            } else { // Movie
-                tvControls.style.display = 'none';
-                const url = server.movieUrl.replace('{id}', currentMedia.id);
-                playerIframe.src = url;
-            }
+        function showGridView(endpoint, title, mediaType) {
+            mainView.style.display = 'none';
+            gridView.style.display = 'block';
+            gridTitle.textContent = title;
+            contentGrid.innerHTML = '';
+            currentPage = 1;
+            currentGridEndpoint = endpoint;
+            currentGridMediaType = mediaType;
+            loadGridContent();
         }
 
-        function loadSelectedEpisode() {
-            if (!currentMedia || currentMedia.media_type !== 'tv' || !activeServer || activeServer.type !== 'autoembed') return;
-            const season = seasonInput.value;
-            const episode = episodeInput.value;
-            const url = activeServer.tvUrl.replace('{id}', currentMedia.id).replace('{season}', season).replace('{episode}', episode);
-            playerIframe.src = url;
-        }
+        async function showDetailsView(media) {
+            addToContinueWatching(media); // Add to history on click
+            lastView = gridView.style.display === 'block' ? 'grid' : 'main';
+            mainView.style.display = 'none';
+            gridView.style.display = 'none';
+            detailsView.style.display = 'block';
+            document.body.style.overflow = 'hidden'; // Disable scroll on main body
+            detailsView.innerHTML = '<div class="text-center p-20">Loading details...</div>';
 
-        async function fetchCombinedAndDisplay(movieEndpoint, tvEndpoint, title) {
             try {
-                const movieUrl = `${TMDB_API_BASE}/${movieEndpoint}?api_key=${TMDB_API_KEY}&language=en-US&page=1`;
-                const tvUrl = `${TMDB_API_BASE}/${tvEndpoint}?api_key=${TMDB_API_KEY}&language=en-US&page=1`;
+                const detailsUrl = `${TMDB_API_BASE}/${media.media_type}/${media.id}?api_key=${TMDB_API_KEY}&append_to_response=credits`;
+                const res = await fetch(detailsUrl);
+                const details = await res.json();
+                
+                const title = details.title || details.name;
+                const backdropUrl = details.backdrop_path ? `${TMDB_IMAGE_BASE_BACKDROP}${details.backdrop_path}` : 'https://placehold.co/1920x1080/1a202c/1a202c?text=';
+                
+                detailsView.className = 'details-view fixed inset-0 bg-[#1a202c] z-50 overflow-y-auto';
+                detailsView.style.backgroundImage = `url(${backdropUrl})`;
+                
+                detailsView.innerHTML = `
+                    <div class="details-gradient absolute inset-0"></div>
+                    <div class="relative min-h-screen flex flex-col md:flex-row p-6 md:p-12 gap-8">
+                        <button id="backBtnDetails" class="absolute top-6 left-6 text-white bg-black/30 rounded-full p-2 hover:bg-red-600"><i data-lucide="arrow-left"></i></button>
+                        <div class="md:w-1/3 lg:w-1/4 pt-20 text-white flex-shrink-0">
+                            <h1 class="text-4xl lg:text-5xl font-extrabold">${title}</h1>
+                            <div class="flex items-center gap-4 mt-4 text-sm text-gray-400">
+                                <span>${details.runtime ? `${details.runtime} min` : `${details.number_of_seasons} Seasons`}</span>
+                                <span>${(details.release_date || details.first_air_date || '').split('-')[0]}</span>
+                                <span class="flex items-center gap-1"><i data-lucide="star" class="w-4 h-4 text-yellow-400 fill-current"></i> ${details.vote_average.toFixed(1)}</span>
+                            </div>
+                            <div class="mt-4"><h3 class="font-bold text-gray-300">GENRES</h3><p class="text-sm text-gray-400">${details.genres.map(g => g.name).join(', ')}</p></div>
+                            <div class="mt-4"><h3 class="font-bold text-gray-300">SUMMARY</h3><p class="text-sm text-gray-400">${details.overview}</p></div>
+                             <div class="mt-4"><h3 class="font-bold text-gray-300">CAST</h3><p class="text-sm text-gray-400">${details.credits.cast.slice(0, 5).map(c => c.name).join(', ')}</p></div>
+                        </div>
+                        <div class="md:w-2/3 lg:w-3/4 flex flex-col pt-10">
+                            <div class="w-full aspect-video bg-black rounded-lg overflow-hidden">
+                                 <iframe id="details-player-iframe" allowfullscreen></iframe>
+                            </div>
+                            <div class="mt-4"><h3 class="font-bold text-gray-300 mb-2">SERVERS</h3><div id="details-server-list" class="flex flex-col gap-2 overflow-y-auto max-h-48 server-list pr-2"></div></div>
+                        </div>
+                    </div>`;
 
-                const [movieResponse, tvResponse] = await Promise.all([fetch(movieUrl), fetch(tvUrl)]);
-                if (!movieResponse.ok || !tvResponse.ok) throw new Error(`TMDB API Error`);
+                lucide.createIcons();
+                document.getElementById('backBtnDetails').onclick = () => {
+                     detailsView.style.display = 'none';
+                     if (lastView === 'grid') {
+                        gridView.style.display = 'block';
+                     } else {
+                        showMainView();
+                     }
+                };
+                
+                const detailsServerList = document.getElementById('details-server-list');
+                const detailsPlayerIframe = document.getElementById('details-player-iframe');
+                
+                SERVERS.forEach((server, index) => {
+                    const item = document.createElement('button');
+                    item.className = 'server-item text-left w-full p-3 rounded-lg bg-gray-800/60 hover:bg-red-700 border-l-4 border-transparent transition-colors';
+                    item.innerHTML = `<span class="font-semibold">${server.name}</span>`;
+                    item.onclick = () => {
+                         let url = media.media_type === 'tv' ? (server.tvUrl || server.movieUrl).replace('{id}', media.id) : server.movieUrl.replace('{id}', media.id);
+                         detailsPlayerIframe.src = url;
+                         document.querySelectorAll('.server-item').forEach(el => el.classList.remove('active'));
+                         item.classList.add('active');
+                    };
+                    if (index === 0) item.click();
+                    detailsServerList.appendChild(item);
+                });
 
-                const movieData = await movieResponse.json();
-                const tvData = await tvResponse.json();
-
-                const movies = movieData.results.map(m => ({...m, media_type: 'movie'}));
-                const series = tvData.results.map(t => ({...t, media_type: 'tv'}));
-
-                let combined = [...movies, ...series].sort((a, b) => b.popularity - a.popularity);
-
-                if (combined.length > 0) createMovieRow(title, combined);
             } catch (error) {
-                console.error(`Error fetching combined for ${title}:`, error);
-                displayError(error.message);
+                console.error("Error showing details:", error);
+                detailsView.innerHTML = `<div class="text-center p-20">Failed to load details. <button onclick="showMainView()" class="text-red-500">Go Back</button></div>`;
             }
         }
         
+        document.getElementById('backToMainBtn').onclick = showMainView;
+
+        // --- DATA LOADING ---
+
+        async function loadGridContent() {
+            if (isLoading) return;
+            isLoading = true;
+            loadingIndicator.style.display = 'block';
+            try {
+                let url;
+                if (currentGridEndpoint.startsWith('search')) {
+                    url = `${TMDB_API_BASE}/${currentGridEndpoint}&page=${currentPage}`;
+                } else {
+                    let baseUrl = `${TMDB_API_BASE}/${currentGridEndpoint}`;
+                    if(baseUrl.includes('?')) {
+                        url = `${baseUrl}&api_key=${TMDB_API_KEY}&page=${currentPage}`;
+                    } else {
+                        url = `${baseUrl}?api_key=${TMDB_API_KEY}&page=${currentPage}`;
+                    }
+                }
+                const res = await fetch(url);
+                const data = await res.json();
+                const results = data.results.map(item => ({...item, media_type: currentGridMediaType || item.media_type }));
+                
+                results.forEach(item => {
+                    if (!item.poster_path) return;
+                    const card = document.createElement('div');
+                    card.className = 'poster-card rounded-lg overflow-hidden bg-gray-800';
+                    card.innerHTML = `<img src="${TMDB_IMAGE_BASE_POSTER}${item.poster_path}" alt="${item.title || item.name}" class="w-full h-auto">`;
+                    card.onclick = () => showDetailsView(item);
+                    contentGrid.appendChild(card);
+                });
+                currentPage++;
+            } catch (error) { console.error("Error loading grid content:", error); } 
+            finally { isLoading = false; loadingIndicator.style.display = 'none'; }
+        }
+        
+        window.onscroll = () => { if (gridView.style.display === 'block' && (window.innerHeight + window.scrollY) >= document.body.offsetHeight - 200) { loadGridContent(); } };
+
         async function fetchAndDisplay(endpoint, title, mediaType) {
             try {
-                const url = `${TMDB_API_BASE}/${endpoint}?api_key=${TMDB_API_KEY}&language=en-US&page=1`;
-                const response = await fetch(url);
-                if (!response.ok) throw new Error(`TMDB API Error: ${response.statusText}`);
-                const data = await response.json();
+                let url = `${TMDB_API_BASE}/${endpoint}`;
+                if (url.includes('?')) {
+                    url += `&api_key=${TMDB_API_KEY}&language=en-US&page=1`;
+                } else {
+                    url += `?api_key=${TMDB_API_KEY}&language=en-US&page=1`;
+                }
+                
+                const res = await fetch(url);
+                const data = await res.json();
                 if (data.results && data.results.length > 0) {
                      const contentResults = data.results.map(item => ({...item, media_type: mediaType}));
-                     createMovieRow(title, contentResults);
+                     createMovieRow(title, contentResults, endpoint, mediaType);
                      
                      if (endpoint.includes('trending/movie')) {
                          const heroItem = contentResults[0];
@@ -289,117 +308,114 @@
                          }
                      }
                 }
-            } catch (error) {
-                console.error(`Error fetching ${title}:`, error);
-                displayError(error.message);
-            }
+            } catch (error) { console.error(`Error fetching ${title}:`, error); }
         }
         
-        async function searchContent() {
-            const query = searchInput.value.trim();
-            if (!query) { displayError("Please enter a title."); return; }
-            const existingSearchRow = document.getElementById('search-results-row');
-            if(existingSearchRow) existingSearchRow.remove();
-            
-            const loadingIndicator = document.createElement('div');
-            loadingIndicator.id = 'search-loading';
-            loadingIndicator.innerHTML = `<h2 class="text-2xl font-bold mb-4">Searching...</h2>`;
-            movieRowsContainer.prepend(loadingIndicator);
-            try {
-                const searchUrl = `${TMDB_API_BASE}/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}`;
-                const response = await fetch(searchUrl);
-                if (!response.ok) throw new Error(`TMDB API Error`);
-                const data = await response.json();
-                
-                document.getElementById('search-loading')?.remove();
-                
-                const contentResults = data.results.filter(item => item.media_type === 'movie' || item.media_type === 'tv');
-
-                if (contentResults.length > 0) {
-                    createMovieRow('Search Results', contentResults, 'search-results-row');
-                } else {
-                    displayError('No movies or series found for that query.');
-                }
-            } catch (error) {
-                console.error("Search error:", error);
-                displayError(error.message);
-            }
-        }
-        function createMovieRow(title, mediaItems, rowId = '') {
+        function createMovieRow(title, mediaItems, endpoint, mediaType, isPrepend = false) {
+            const rowId = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
             const rowWrapper = document.createElement('div');
-            if (rowId) rowWrapper.id = rowId;
+            rowWrapper.id = rowId;
             rowWrapper.innerHTML = `
-                <h2 class="text-2xl font-bold mb-4">${title}</h2>
-                <div class="carousel-container relative">
-                    <div class="movie-carousel flex overflow-x-auto space-x-4 pb-4"></div>
-                    <button class="scroll-btn left"><i data-lucide="chevron-left" class="w-8 h-8"></i></button>
-                    <button class="scroll-btn right"><i data-lucide="chevron-right" class="w-8 h-8"></i></button>
-                </div>`;
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold">${title}</h2>
+                    ${endpoint ? `<button class="see-all-btn text-sm font-semibold text-gray-400 hover:text-red-500">See All &gt;</button>` : ''}
+                </div>
+                <div class="relative"><div class="movie-carousel flex overflow-x-auto space-x-4 pb-4"></div></div>`;
             const carousel = rowWrapper.querySelector('.movie-carousel');
             mediaItems.forEach(media => {
                 if (!media.poster_path) return;
                 const movieCard = document.createElement('div');
-                movieCard.className = 'movie-card flex-shrink-0 w-32 sm:w-36 md:w-40 lg:w-44 xl:w-52 bg-gray-800 rounded-lg overflow-hidden cursor-pointer';
+                movieCard.className = 'poster-card flex-shrink-0 w-40 sm:w-44 md:w-48 bg-gray-800 rounded-lg overflow-hidden';
                 movieCard.innerHTML = `<img src="${TMDB_IMAGE_BASE_POSTER}${media.poster_path}" alt="${media.title || media.name}" class="w-full h-auto">`;
-                movieCard.addEventListener('click', () => loadPlayerForMedia(media));
-                movieCard.addEventListener('mouseenter', () => debouncedUpdateHero(media));
+                movieCard.onclick = () => showDetailsView(media);
                 carousel.appendChild(movieCard);
             });
-            const leftBtn = rowWrapper.querySelector('.scroll-btn.left');
-            const rightBtn = rowWrapper.querySelector('.scroll-btn.right');
-            leftBtn.addEventListener('click', () => carousel.scrollBy({ left: -carousel.offsetWidth * 0.9, behavior: 'smooth' }));
-            rightBtn.addEventListener('click', () => carousel.scrollBy({ left: carousel.offsetWidth * 0.9, behavior: 'smooth' }));
-            lucide.createIcons({ nodes: [leftBtn, rightBtn] });
-            if(rowId === 'search-results-row'){ movieRowsContainer.prepend(rowWrapper); } 
-            else { movieRowsContainer.appendChild(rowWrapper); }
+            if(endpoint) {
+                rowWrapper.querySelector('.see-all-btn').onclick = () => showGridView(endpoint, title, mediaType);
+            }
+            if(isPrepend) {
+                movieRows.prepend(rowWrapper);
+            } else {
+                movieRows.appendChild(rowWrapper);
+            }
         }
-
-        // --- UTILITY AND HELPER FUNCTIONS ---
-
-        function debounce(func, wait) {
-            let timeout;
-            return function executedFunction(...args) {
-                const later = () => { clearTimeout(timeout); func(...args); };
-                clearTimeout(timeout);
-                timeout = setTimeout(later, wait);
-            };
+        
+        async function handleSearch() {
+            const query = searchInput.value.trim();
+            if(!query) return;
+            showGridView(`search/multi?query=${encodeURIComponent(query)}`, `Search results for "${query}"`, null);
         }
-
-        function updateHero(media) {
-            if (media && media.backdrop_path) {
-                heroSection.style.backgroundImage = `url('${TMDB_IMAGE_BASE_BACKDROP}${media.backdrop_path}')`;
-                heroTitle.textContent = media.title || media.name;
-                heroOverview.textContent = media.overview;
+        
+        // --- Continue Watching Logic ---
+        function getContinueWatching() {
+            return JSON.parse(localStorage.getItem('streamflix-continue-watching') || '[]');
+        }
+        function addToContinueWatching(media) {
+            let history = getContinueWatching();
+            history = history.filter(item => item.id !== media.id);
+            history.unshift(media);
+            if (history.length > 20) history = history.slice(0, 20);
+            localStorage.setItem('streamflix-continue-watching', JSON.stringify(history));
+        }
+        function loadContinueWatching() {
+            const history = getContinueWatching();
+            if (history.length > 0) {
+                createMovieRow('Continue Watching', history, null, null, true);
             }
         }
 
-        const debouncedUpdateHero = debounce(updateHero, 300);
+        // --- CATEGORY DROPDOWN ---
+        function buildCategoryDropdown() {
+            const dropdown = document.getElementById('categoryDropdown');
+            dropdown.innerHTML = '';
+            const categories = document.querySelectorAll('#movieRows h2');
+            categories.forEach(cat => {
+                const link = document.createElement('a');
+                link.href = `#${cat.parentElement.parentElement.id}`;
+                link.textContent = cat.textContent;
+                link.className = 'block px-4 py-2 text-sm text-gray-300 hover:bg-red-600 hover:text-white';
+                link.onclick = (e) => {
+                    e.preventDefault();
+                    document.getElementById(cat.parentElement.parentElement.id)?.scrollIntoView({ behavior: 'smooth' });
+                    dropdown.classList.add('hidden');
+                };
+                dropdown.appendChild(link);
+            });
 
-        function openModal(modal) {
-            modal.classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
+            const dropdownBtn = document.getElementById('categoryBtn');
+            const dropdownContainer = document.getElementById('categoryDropdownContainer');
+            dropdownBtn.onclick = (e) => {
+                e.stopPropagation();
+                dropdown.classList.toggle('hidden');
+            };
+            window.addEventListener('click', (e) => {
+                if (!dropdownContainer.contains(e.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            });
         }
-        function closeModal() {
-            playerIframe.src = 'about:blank'; // Stop video on close
-            currentMedia = null; // Clear current media
-            playerModal.classList.add('hidden');
-            document.body.style.overflow = 'auto';
-        }
-        function displayError(message) { 
-            errorMessage.textContent = message;
-            setTimeout(() => errorMessage.textContent = '', 5000);
-        }
+
 
         // --- INITIALIZATION ---
-        function initializeApp() {
-             if (!TMDB_API_KEY) { displayError("CRITICAL: TMDB API Key not set."); return; }
-            fetchAndDisplay('trending/movie/week', 'Trending Movies', 'movie');
-            fetchAndDisplay('trending/tv/week', 'Trending Series', 'tv');
-            fetchCombinedAndDisplay('movie/popular', 'tv/popular', 'Popular Movies & Series');
-            fetchAndDisplay('movie/now_playing', 'Newest Movies', 'movie');
-            fetchAndDisplay('tv/on_the_air', 'Newest TV Series', 'tv');
+        async function initializeApp() {
+             if (!TMDB_API_KEY) { return; }
+             showMainView();
+             movieRows.innerHTML = '';
+             loadContinueWatching();
+             await Promise.all([
+                 fetchAndDisplay('movie/now_playing', 'Newest Movies', 'movie'),
+                 fetchAndDisplay('tv/on_the_air', 'Newest TV Series', 'tv'),
+                 fetchAndDisplay('movie/popular', 'Popular Movies', 'movie'),
+                 fetchAndDisplay('tv/popular', 'Popular Series', 'tv'),
+                 fetchAndDisplay('trending/movie/week', 'Trending Movies', 'movie'),
+                 fetchAndDisplay('trending/tv/week', 'Trending Series', 'tv'),
+                 fetchAndDisplay('discover/movie?with_original_language=tl', 'Filipino / Tagalog Movies', 'movie')
+             ]);
+             buildCategoryDropdown(); // Build dropdown after all rows are created
         }
 
+        searchBtn.addEventListener('click', handleSearch);
+        searchInput.addEventListener('keyup', e => e.key === 'Enter' && handleSearch());
         initializeApp();
     </script>
 </body>
