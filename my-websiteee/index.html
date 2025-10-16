@@ -77,7 +77,7 @@
 <body class="text-gray-200">
 
     <header class="p-4 md:p-6 sticky top-0 bg-[#1a202c]/80 backdrop-blur-sm z-30">
-        <div class="max-w-screen-2xl mx-auto flex justify-between items-center">
+        <div class="w-full mx-auto flex justify-between items-center px-4 md:px-8">
             <div class="flex items-center gap-8">
                 <h1 id="pageTitle" class="text-2xl md:text-3xl font-extrabold text-red-600 tracking-wider cursor-pointer">STREAMFLIX</h1>
                 <nav class="hidden md:flex items-center gap-6 text-white font-semibold">
@@ -138,18 +138,20 @@
         <main>
             <section id="heroSection" class="relative h-[40vh] md:h-[50vh] flex items-end text-white p-6 md:p-12" style="background-image: url('https://placehold.co/1920x1080/1a202c/1a202c?text='); background-size: cover; background-position: center top;">
                  <div class="absolute inset-0 hero-gradient"></div>
-                 <div class="relative z-10 max-w-xl lg:max-w-3xl">
+                 <div class="relative z-10 max-w-xl lg:max-w-3xl px-4 md:px-8">
                     <h2 id="heroTitle" class="text-3xl md:text-5xl font-extrabold drop-shadow-lg">Loading...</h2>
                     <p id="heroOverview" class="mt-4 text-xs md:text-sm max-w-prose drop-shadow-md">Fetching the latest content for you.</p>
                 </div>
             </section>
-            <div id="movieRows" class="space-y-12 py-8 px-4 md:px-6 max-w-screen-2xl mx-auto"></div>
+            <div id="movieRows" class="space-y-12 py-8 px-4 md:px-8">
+                 <!-- Rows will be injected here -->
+            </div>
         </main>
     </div>
 
     <!-- Grid View -->
     <div id="gridView" class="hidden">
-        <main class="p-4 md:p-6 max-w-screen-2xl mx-auto">
+        <main class="p-4 md:p-6 mx-auto">
             <button id="backToMainBtn" class="flex items-center gap-2 mb-6 font-semibold hover:text-red-500"><i data-lucide="arrow-left"></i> Back to Home</button>
             <h2 id="gridTitle" class="text-2xl font-bold mb-6"></h2>
             <div id="contentGrid" class="main-grid"></div>
@@ -166,11 +168,10 @@
         // --- CONFIGURATION ---
         const TMDB_API_KEY = 'a1e72fd93ed59f56e6332813b9f8dcae';
         const SERVERS = [
-            { name: "Server 1 (v2)", type: 'vidsrc', movieUrl: "https://vidsrc.cc/v2/embed/movie/{id}", tvUrl: "https://vidsrc.cc/v2/embed/tv/{id}" },
-            { name: "Server 2 (v3)", type: 'vidsrc', movieUrl: "https://vidsrc.cc/v3/embed/movie/{id}", tvUrl: "https://vidsrc.cc/v3/embed/tv/{id}" },
-            { name: "Server 3 (Auto)", type: 'autoembed', movieUrl: "https://player.autoembed.cc/embed/movie/{id}", tvUrl: "https://player.autoembed.cc/embed/tv/{id}/{season}/{episode}" }
+            { name: "Server 1 (v2)", id_type: 'imdb', movieUrl: "https://vidsrc.cc/v2/embed/movie/{id}", tvUrl: "https://vidsrc.cc/v2/embed/tv/{id}" },
+            { name: "Server 2 (v3)", id_type: 'imdb', movieUrl: "https://vidsrc.cc/v3/embed/movie/{id}", tvUrl: "https://vidsrc.cc/v3/embed/tv/{id}" },
+            { name: "Server 3 (Auto)", id_type: 'tmdb', movieUrl: "https://player.autoembed.cc/embed/movie/{id}", tvUrl: "https://player.autoembed.cc/embed/tv/{id}/{season}/{episode}" }
         ];
-        const ANIMATION_GENRE_ID = 16;
 
         // --- CONSTANTS ---
         const TMDB_API_BASE = 'https://api.themoviedb.org/3';
@@ -228,7 +229,7 @@
             detailsView.innerHTML = '<div class="text-center p-20">Loading details...</div>';
 
             try {
-                const detailsUrl = `${TMDB_API_BASE}/${media.media_type}/${media.id}?api_key=${TMDB_API_KEY}&append_to_response=credits`;
+                const detailsUrl = `${TMDB_API_BASE}/${media.media_type}/${media.id}?api_key=${TMDB_API_KEY}&append_to_response=credits,external_ids`;
                 const res = await fetch(detailsUrl);
                 const details = await res.json();
                 
@@ -240,7 +241,7 @@
                 
                 detailsView.innerHTML = `
                     <div class="details-gradient absolute inset-0"></div>
-                    <div class="relative min-h-screen flex flex-col md:flex-row p-6 md:p-12 gap-8">
+                    <div class="relative min-h-screen w-full mx-auto flex flex-col md:flex-row p-6 md:p-12 gap-8">
                         <button id="backBtnDetails" class="absolute top-6 left-6 text-white bg-black/30 rounded-full p-2 hover:bg-red-600"><i data-lucide="arrow-left"></i></button>
                         <div class="md:w-1/3 lg:w-1/4 pt-20 text-white flex-shrink-0">
                             <h1 class="text-4xl lg:text-5xl font-extrabold">${title}</h1>
@@ -255,7 +256,7 @@
                         </div>
                         <div class="md:w-2/3 lg:w-3/4 flex flex-col pt-10">
                             <div class="w-full aspect-video bg-black rounded-lg overflow-hidden">
-                                 <iframe id="details-player-iframe" allowfullscreen></iframe>
+                                 <iframe id="details-player-iframe" class="w-full h-full" allowfullscreen></iframe>
                             </div>
                             <div class="mt-4"><h3 class="font-bold text-gray-300 mb-2">SERVERS</h3><div id="details-server-list" class="flex flex-col gap-2 overflow-y-auto max-h-48 server-list pr-2"></div></div>
                         </div>
@@ -273,20 +274,31 @@
                 
                 const detailsServerList = document.getElementById('details-server-list');
                 const detailsPlayerIframe = document.getElementById('details-player-iframe');
+                const imdb_id = details.imdb_id || details.external_ids?.imdb_id;
+
                 
-                SERVERS.forEach((server, index) => {
+                SERVERS.forEach((server) => {
+                    let id_to_use;
+                    if (server.id_type === 'imdb') {
+                        if (!imdb_id) return; 
+                        id_to_use = imdb_id;
+                    } else {
+                        id_to_use = media.id;
+                    }
+
                     const item = document.createElement('button');
                     item.className = 'server-item text-left w-full p-3 rounded-lg bg-gray-800/60 hover:bg-red-700 border-l-4 border-transparent transition-colors';
                     item.innerHTML = `<span class="font-semibold">${server.name}</span>`;
                     item.onclick = () => {
-                         let url = media.media_type === 'tv' ? (server.tvUrl || server.movieUrl).replace('{id}', media.id) : server.movieUrl.replace('{id}', media.id);
+                         let url = media.media_type === 'tv' ? (server.tvUrl || server.movieUrl).replace('{id}', id_to_use) : server.movieUrl.replace('{id}', id_to_use);
                          detailsPlayerIframe.src = url;
                          document.querySelectorAll('.server-item').forEach(el => el.classList.remove('active'));
                          item.classList.add('active');
                     };
-                    if (index === 0) item.click();
                     detailsServerList.appendChild(item);
                 });
+                
+                detailsServerList.querySelector('.server-item')?.click();
 
             } catch (error) {
                 console.error("Error showing details:", error);
@@ -311,24 +323,25 @@
                 }
                 const res = await fetch(url);
                 const data = await res.json();
-                const results = data.results.map(item => ({...item, media_type: currentGridMediaType || item.media_type }));
-                
-                results.forEach(item => {
-                    if (!item.poster_path) return;
-                    const card = document.createElement('div');
-                    card.className = 'poster-card rounded-lg overflow-hidden bg-gray-800';
-                    card.innerHTML = `<img src="${TMDB_IMAGE_BASE_POSTER}${item.poster_path}" alt="${item.title || item.name}">`;
-                    card.onclick = () => showDetailsView(item);
-                    contentGrid.appendChild(card);
-                });
-                currentPage++;
+                if (data.results) {
+                    const results = data.results.map(item => ({...item, media_type: currentGridMediaType || item.media_type }));
+                    results.forEach(item => {
+                        if (!item.poster_path) return;
+                        const card = document.createElement('div');
+                        card.className = 'poster-card rounded-lg overflow-hidden bg-gray-800';
+                        card.innerHTML = `<img src="${TMDB_IMAGE_BASE_POSTER}${item.poster_path}" alt="${item.title || item.name}">`;
+                        card.onclick = () => showDetailsView(item);
+                        contentGrid.appendChild(card);
+                    });
+                    currentPage++;
+                }
             } catch (error) { console.error("Error loading grid content:", error); } 
             finally { isLoading = false; loadingIndicator.style.display = 'none'; }
         }
         
         window.onscroll = () => { if (gridView.style.display === 'block' && (window.innerHeight + window.scrollY) >= document.body.offsetHeight - 200) { loadGridContent(); } };
 
-        async function fetchAndDisplay(endpoint, title, mediaType, excludeAnime = false) {
+        async function fetchAndDisplay(endpoint, title, mediaType) {
             try {
                 let url = `${TMDB_API_BASE}/${endpoint}`;
                 if (url.includes('?')) {
@@ -340,12 +353,7 @@
                 const res = await fetch(url);
                 const data = await res.json();
                 if (data.results && data.results.length > 0) {
-                     let contentResults = data.results.map(item => ({...item, media_type: mediaType}));
-                     
-                     if(excludeAnime) {
-                         contentResults = contentResults.filter(item => !item.genre_ids.includes(ANIMATION_GENRE_ID));
-                     }
-
+                     const contentResults = data.results.map(item => ({...item, media_type: mediaType}));
                      createMovieRow(title, contentResults, endpoint, mediaType);
                      
                      if (endpoint.includes('trending/movie')) {
@@ -392,7 +400,7 @@
         async function handleSearch() {
             const query = searchInput.value.trim();
             if(!query) return;
-            showGridView(`search/multi?query=${encodeURIComponent(query)}`, `Search results for "${query}"`, null);
+            showGridView(`search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}`, `Search results for "${query}"`, null);
         }
         
         // --- Continue Watching Logic ---
@@ -462,10 +470,7 @@
                 const res = await fetch(url);
                 const data = await res.json();
                 
-                const allGenres = [...data.genres, 
-                    { id: ANIMATION_GENRE_ID, name: 'Anime' },
-                    { id: 'tl', name: 'Tagalog' }
-                ];
+                const allGenres = [...data.genres, { id: 'tl', name: 'Tagalog' }];
                 
                 allGenres.sort((a, b) => a.name.localeCompare(b.name));
 
@@ -480,11 +485,7 @@
                         e.preventDefault();
                         dropdown.style.display = 'none';
                         let endpoint, title, mediaType;
-                        if (genre.name === 'Anime') {
-                            endpoint = `discover/tv?with_genres=16`;
-                            title = `Anime Series`;
-                            mediaType = 'tv';
-                        } else if (genre.id === 'tl') {
+                        if (genre.id === 'tl') {
                             endpoint = `discover/movie?with_original_language=tl`;
                             title = `Tagalog Movies`;
                             mediaType = 'movie';
@@ -512,13 +513,13 @@
              movieRows.innerHTML = '';
              loadContinueWatching();
              await Promise.all([
-                 fetchAndDisplay('trending/movie/week', 'Trending Movies', 'movie', true), // Exclude Anime
-                 fetchAndDisplay('trending/tv/week', 'Trending Series', 'tv', true), // Exclude Anime
-                 fetchAndDisplay('movie/popular', 'Popular Movies', 'movie', true), // Exclude Anime
-                 fetchAndDisplay('tv/popular', 'Popular Series', 'tv', true), // Exclude Anime
-                 fetchAndDisplay('movie/now_playing', 'Newest Movies', 'movie', true), // Exclude Anime
-                 fetchAndDisplay('tv/on_the_air', 'Newest TV Series', 'tv', true), // Exclude Anime
-                 fetchAndDisplay('discover/tv?with_genres=16&sort_by=popularity.desc', 'Anime', 'tv') // Anime-only section
+                 fetchAndDisplay('trending/movie/week', 'Trending Movies', 'movie'),
+                 fetchAndDisplay('trending/tv/week', 'Trending Series', 'tv'),
+                 fetchAndDisplay('movie/popular', 'Popular Movies', 'movie'),
+                 fetchAndDisplay('tv/popular', 'Popular Series', 'tv'),
+                 fetchAndDisplay('movie/now_playing', 'Newest Movies', 'movie'),
+                 fetchAndDisplay('tv/on_the_air', 'Newest TV Series', 'tv'),
+                 fetchAndDisplay('discover/movie?with_original_language=tl&sort_by=popularity.desc', 'Filipino / Tagalog Movies', 'movie')
              ]);
         }
 
