@@ -12,13 +12,13 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #1a202c;
+            background-color: #000000; /* Changed to pure black */
         }
         #heroSection {
             transition: background-image 0.5s ease-in-out;
         }
         .hero-gradient {
-            background-image: linear-gradient(to top, #1a202c, rgba(26, 32, 44, 0) 50%);
+            background-image: linear-gradient(to top, #000000, rgba(0, 0, 0, 0) 50%); /* Updated to use black */
         }
         .main-grid {
             display: grid;
@@ -28,6 +28,21 @@
         @media (min-width: 640px) {
             .main-grid {
                 grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            }
+        }
+        @media (min-width: 768px) {  /* md: Added for larger screens */
+            .main-grid {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            }
+        }
+        @media (min-width: 1024px) {  /* lg: Added for even larger screens */
+            .main-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            }
+        }
+        @media (min-width: 1280px) {  /* xl: Added for extra-large screens */
+            .main-grid {
+                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             }
         }
         .poster-card {
@@ -51,7 +66,7 @@
             background-repeat: no-repeat;
         }
         .details-gradient {
-            background: linear-gradient(to right, #1a202c 20%, rgba(26, 32, 44, 0.8) 50%, rgba(26, 32, 44, 0) 100%);
+            background: linear-gradient(to right, #000000 20%, rgba(0, 0, 0, 0.8) 50%, rgba(0, 0, 0, 0) 100%); /* Updated to use black */
         }
         .server-list {
             scrollbar-width: thin;
@@ -76,7 +91,7 @@
 </head>
 <body class="text-gray-200">
 
-    <header class="p-4 md:p-6 sticky top-0 bg-[#1a202c]/80 backdrop-blur-sm z-30">
+    <header class="p-4 md:p-6 sticky top-0 bg-[#000000]/80 backdrop-blur-sm z-30"> <!-- Updated background to black -->
         <div class="max-w-screen-2xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-8">
                 <h1 id="pageTitle" class="text-2xl md:text-3xl font-extrabold text-red-600 tracking-wider cursor-pointer">STREAMFLIX</h1>
@@ -136,7 +151,7 @@
     <!-- Main Carousel View -->
     <div id="mainView">
         <main>
-            <section id="heroSection" class="relative h-[40vh] md:h-[50vh] flex items-end text-white p-6 md:p-12" style="background-image: url('https://placehold.co/1920x1080/1a202c/1a202c?text='); background-size: cover; background-position: center top;">
+            <section id="heroSection" class="relative h-[40vh] md:h-[50vh] flex items-end text-white p-6 md:p-12" style="background-image: url('https://placehold.co/1920x1080/000000/000000?text='); background-size: cover; background-position: center top;">
                  <div class="absolute inset-0 hero-gradient"></div>
                  <div class="relative z-10 max-w-xl lg:max-w-3xl">
                     <h2 id="heroTitle" class="text-3xl md:text-5xl font-extrabold drop-shadow-lg">Loading...</h2>
@@ -158,7 +173,7 @@
     </div>
 
     <!-- Details View -->
-    <div id="detailsView" class="hidden fixed inset-0 bg-[#1a202c] z-50 overflow-y-auto"></div>
+    <div id="detailsView" class="hidden fixed inset-0 bg-[#000000] z-50 overflow-y-auto"></div>
 
     <script>
         lucide.createIcons();
@@ -191,7 +206,6 @@
         const heroOverview = document.getElementById('heroOverview');
         document.getElementById('pageTitle').onclick = showMainView;
 
-
         let currentPage = 1;
         let isLoading = false;
         let currentGridEndpoint = '';
@@ -203,7 +217,7 @@
             mainView.style.display = 'block';
             gridView.style.display = 'none';
             detailsView.style.display = 'none';
-            document.body.style.overflow = 'auto'; // Ensure scroll is enabled
+            document.body.style.overflow = 'auto';
         }
 
         function showGridView(endpoint, title, mediaType) {
@@ -218,12 +232,12 @@
         }
 
         async function showDetailsView(media) {
-            addToContinueWatching(media); // Add to history on click
+            addToContinueWatching(media);
             lastView = gridView.style.display === 'block' ? 'grid' : 'main';
             mainView.style.display = 'none';
             gridView.style.display = 'none';
             detailsView.style.display = 'block';
-            document.body.style.overflow = 'hidden'; // Disable scroll on main body
+            document.body.style.overflow = 'hidden';
             detailsView.innerHTML = '<div class="text-center p-20">Loading details...</div>';
 
             try {
@@ -232,9 +246,9 @@
                 const details = await res.json();
                 
                 const title = details.title || details.name;
-                const backdropUrl = details.backdrop_path ? `${TMDB_IMAGE_BASE_BACKDROP}${details.backdrop_path}` : 'https://placehold.co/1920x1080/1a202c/1a202c?text=';
+                const backdropUrl = details.backdrop_path ? `${TMDB_IMAGE_BASE_BACKDROP}${details.backdrop_path}` : 'https://placehold.co/1920x1080/000000/000000?text=';
                 
-                detailsView.className = 'details-view fixed inset-0 bg-[#1a202c] z-50 overflow-y-auto';
+                detailsView.className = 'details-view fixed inset-0 bg-[#000000] z-50 overflow-y-auto';
                 detailsView.style.backgroundImage = `url(${backdropUrl})`;
                 
                 detailsView.innerHTML = `
@@ -254,281 +268,4 @@
                         </div>
                         <div class="md:w-2/3 lg:w-3/4 flex flex-col pt-10">
                             <div class="w-full aspect-video bg-black rounded-lg overflow-hidden">
-                                 <iframe id="details-player-iframe" class="w-full h-full" allowfullscreen></iframe>
-                            </div>
-                            <div class="mt-4"><h3 class="font-bold text-gray-300 mb-2">SERVERS</h3><div id="details-server-list" class="flex flex-col gap-2 overflow-y-auto max-h-48 server-list pr-2"></div></div>
-                        </div>
-                    </div>`;
-
-                lucide.createIcons();
-                document.getElementById('backBtnDetails').onclick = () => {
-                     detailsView.style.display = 'none';
-                     if (lastView === 'grid') {
-                        gridView.style.display = 'block';
-                     } else {
-                        showMainView();
-                     }
-                };
-                
-                const detailsServerList = document.getElementById('details-server-list');
-                const detailsPlayerIframe = document.getElementById('details-player-iframe');
-                const imdb_id = details.imdb_id || details.external_ids?.imdb_id;
-
-                
-                SERVERS.forEach((server) => {
-                    let id_to_use;
-                    if (server.id_type === 'imdb') {
-                        if (!imdb_id) return; 
-                        id_to_use = imdb_id;
-                    } else {
-                        id_to_use = media.id;
-                    }
-
-                    const item = document.createElement('button');
-                    item.className = 'server-item text-left w-full p-3 rounded-lg bg-gray-800/60 hover:bg-red-700 border-l-4 border-transparent transition-colors';
-                    item.innerHTML = `<span class="font-semibold">${server.name}</span>`;
-                    item.onclick = () => {
-                         let url = media.media_type === 'tv' ? (server.tvUrl || server.movieUrl).replace('{id}', id_to_use) : server.movieUrl.replace('{id}', id_to_use);
-                         detailsPlayerIframe.src = url;
-                         document.querySelectorAll('.server-item').forEach(el => el.classList.remove('active'));
-                         item.classList.add('active');
-                    };
-                    detailsServerList.appendChild(item);
-                });
-                
-                detailsServerList.querySelector('.server-item')?.click();
-
-            } catch (error) {
-                console.error("Error showing details:", error);
-                detailsView.innerHTML = `<div class="text-center p-20">Failed to load details. <button onclick="showMainView()" class="text-red-500">Go Back</button></div>`;
-            }
-        }
-        
-        document.getElementById('backToMainBtn').onclick = showMainView;
-
-        // --- DATA LOADING ---
-
-        async function loadGridContent() {
-            if (isLoading) return;
-            isLoading = true;
-            loadingIndicator.style.display = 'block';
-            try {
-                let url = `${TMDB_API_BASE}/${currentGridEndpoint}`;
-                if (url.includes('?')) {
-                    url += `&api_key=${TMDB_API_KEY}&page=${currentPage}`;
-                } else {
-                    url += `?api_key=${TMDB_API_KEY}&page=${currentPage}`;
-                }
-                const res = await fetch(url);
-                const data = await res.json();
-                if (data.results) {
-                    const results = data.results.map(item => ({...item, media_type: currentGridMediaType || item.media_type }));
-                    results.forEach(item => {
-                        if (!item.poster_path) return;
-                        const card = document.createElement('div');
-                        card.className = 'poster-card rounded-lg overflow-hidden bg-gray-800';
-                        card.innerHTML = `<img src="${TMDB_IMAGE_BASE_POSTER}${item.poster_path}" alt="${item.title || item.name}">`;
-                        card.onclick = () => showDetailsView(item);
-                        contentGrid.appendChild(card);
-                    });
-                    currentPage++;
-                }
-            } catch (error) { console.error("Error loading grid content:", error); } 
-            finally { isLoading = false; loadingIndicator.style.display = 'none'; }
-        }
-        
-        window.onscroll = () => { if (gridView.style.display === 'block' && (window.innerHeight + window.scrollY) >= document.body.offsetHeight - 200) { loadGridContent(); } };
-
-        async function fetchAndDisplay(endpoint, title, mediaType) {
-            try {
-                let url = `${TMDB_API_BASE}/${endpoint}`;
-                if (url.includes('?')) {
-                    url += `&api_key=${TMDB_API_KEY}&language=en-US&page=1`;
-                } else {
-                    url += `?api_key=${TMDB_API_KEY}&language=en-US&page=1`;
-                }
-                
-                const res = await fetch(url);
-                const data = await res.json();
-                if (data.results && data.results.length > 0) {
-                     const contentResults = data.results.map(item => ({...item, media_type: mediaType}));
-                     createMovieRow(title, contentResults, endpoint, mediaType);
-                     
-                     if (endpoint.includes('trending/movie')) {
-                         const heroItem = contentResults[0];
-                         if (heroItem && heroItem.backdrop_path) {
-                            heroSection.style.backgroundImage = `url('${TMDB_IMAGE_BASE_BACKDROP}${heroItem.backdrop_path}')`;
-                            heroTitle.textContent = heroItem.title || heroItem.name;
-                            heroOverview.textContent = heroItem.overview;
-                         }
-                     }
-                }
-            } catch (error) { console.error(`Error fetching ${title}:`, error); }
-        }
-        
-        function createMovieRow(title, mediaItems, endpoint, mediaType, isPrepend = false) {
-            const rowId = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-            const rowWrapper = document.createElement('div');
-            rowWrapper.id = rowId;
-            rowWrapper.innerHTML = `
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-bold">${title}</h2>
-                    ${endpoint ? `<button class="see-all-btn text-sm font-semibold text-gray-400 hover:text-red-500">See All &gt;</button>` : ''}
-                </div>
-                <div class="relative"><div class="movie-carousel flex overflow-x-auto space-x-4 pb-4"></div></div>`;
-            const carousel = rowWrapper.querySelector('.movie-carousel');
-            mediaItems.forEach(media => {
-                if (!media.poster_path) return;
-                const movieCard = document.createElement('div');
-                movieCard.className = 'poster-card flex-shrink-0 w-40 sm:w-44 md:w-48 bg-gray-800 rounded-lg overflow-hidden';
-                movieCard.innerHTML = `<img src="${TMDB_IMAGE_BASE_POSTER}${media.poster_path}" alt="${media.title || media.name}">`;
-                movieCard.onclick = () => showDetailsView(media);
-                movieCard.addEventListener('mouseenter', () => debouncedUpdateHero(media));
-                carousel.appendChild(movieCard);
-            });
-            if(endpoint) {
-                rowWrapper.querySelector('.see-all-btn').onclick = () => showGridView(endpoint, title, mediaType);
-            }
-            if(isPrepend) {
-                movieRows.prepend(rowWrapper);
-            } else {
-                movieRows.appendChild(rowWrapper);
-            }
-        }
-        
-        async function handleSearch() {
-            const query = searchInput.value.trim();
-            if(!query) return;
-            showGridView(`search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}`, `Search results for "${query}"`, null);
-        }
-        
-        // --- Continue Watching Logic ---
-        function getContinueWatching() {
-            return JSON.parse(localStorage.getItem('streamflix-continue-watching') || '[]');
-        }
-        function addToContinueWatching(media) {
-            let history = getContinueWatching();
-            history = history.filter(item => item.id !== media.id);
-            history.unshift(media);
-            if (history.length > 20) history = history.slice(0, 20);
-            localStorage.setItem('streamflix-continue-watching', JSON.stringify(history));
-        }
-        function loadContinueWatching() {
-            const history = getContinueWatching();
-            if (history.length > 0) {
-                createMovieRow('Continue Watching', history, null, null, true);
-            }
-        }
-
-        // --- Navigation Dropdown Logic ---
-        function setupDropdowns() {
-            const dropdownLinks = document.querySelectorAll('header .dropdown-content a');
-            dropdownLinks.forEach(link => {
-                link.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const endpoint = link.dataset.endpoint;
-                    const mediaType = link.dataset.type;
-                    const title = link.dataset.title;
-                    document.querySelectorAll('.dropdown-content').forEach(d => d.style.display = 'none');
-                    showGridView(endpoint, title, mediaType);
-                });
-            });
-
-            const dropdowns = document.querySelectorAll('.dropdown');
-            dropdowns.forEach(dropdown => {
-                const button = dropdown.querySelector('button');
-                const content = dropdown.querySelector('.dropdown-content');
-
-                button.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const isVisible = content.style.display === 'grid';
-                    document.querySelectorAll('.dropdown-content').forEach(d => d.style.display = 'none');
-                    if (!isVisible) {
-                        content.style.display = 'grid';
-                    }
-                });
-            });
-
-            window.addEventListener('click', (e) => {
-                let isInsideDropdown = false;
-                dropdowns.forEach(dropdown => {
-                    if (dropdown.contains(e.target)) {
-                        isInsideDropdown = true;
-                    }
-                });
-                if (!isInsideDropdown) {
-                    document.querySelectorAll('.dropdown-content').forEach(d => d.style.display = 'none');
-                }
-            });
-        }
-        
-        async function buildGenreDropdown() {
-            const dropdown = document.getElementById('genreDropdown');
-            try {
-                const url = `${TMDB_API_BASE}/genre/movie/list?api_key=${TMDB_API_KEY}`;
-                const res = await fetch(url);
-                const data = await res.json();
-                
-                const allGenres = [...data.genres, { id: 'tl', name: 'Tagalog' }];
-                
-                allGenres.sort((a, b) => a.name.localeCompare(b.name));
-
-                dropdown.innerHTML = ''; 
-                
-                allGenres.forEach(genre => {
-                    const link = document.createElement('a');
-                    link.href = '#';
-                    link.textContent = genre.name;
-                    link.className = "hover:text-red-500 transition-colors";
-                    link.onclick = (e) => {
-                        e.preventDefault();
-                        dropdown.style.display = 'none';
-                        let endpoint, title, mediaType;
-                        if (genre.id === 'tl') {
-                            endpoint = `discover/movie?with_original_language=tl`;
-                            title = `Tagalog Movies`;
-                            mediaType = 'movie';
-                        } else {
-                            endpoint = `discover/movie?with_genres=${genre.id}`;
-                            title = `${genre.name} Movies`;
-                            mediaType = 'movie';
-                        }
-                        showGridView(endpoint, title, mediaType);
-                    };
-                    dropdown.appendChild(link);
-                });
-            } catch(e) {
-                dropdown.innerHTML = 'Could not load genres.';
-            }
-        }
-
-        // --- UTILITY FUNCTIONS ---
-        function debounce(func, wait) { let timeout; return function executedFunction(...args) { const later = () => { clearTimeout(timeout); func(...args); }; clearTimeout(timeout); timeout = setTimeout(later, wait); }; }
-        const debouncedUpdateHero = debounce(updateHero, 300);
-        function updateHero(media) { if (media && media.backdrop_path) { heroSection.style.backgroundImage = `url('${TMDB_IMAGE_BASE_BACKDROP}${media.backdrop_path}')`; heroTitle.textContent = media.title || media.name; heroOverview.textContent = media.overview; } }
-
-        // --- INITIALIZATION ---
-        async function initializeApp() {
-             if (!TMDB_API_KEY) { return; }
-             showMainView();
-             setupDropdowns();
-             buildGenreDropdown();
-             movieRows.innerHTML = '';
-             loadContinueWatching();
-             await Promise.all([
-                 fetchAndDisplay('trending/movie/week', 'Trending Movies', 'movie'),
-                 fetchAndDisplay('trending/tv/week', 'Trending Series', 'tv'),
-                 fetchAndDisplay('movie/popular', 'Popular Movies', 'movie'),
-                 fetchAndDisplay('tv/popular', 'Popular Series', 'tv'),
-                 fetchAndDisplay('movie/now_playing', 'Newest Movies', 'movie'),
-                 fetchAndDisplay('tv/on_the_air', 'Newest TV Series', 'tv')
-             ]);
-        }
-
-        searchBtn.addEventListener('click', handleSearch);
-        searchInput.addEventListener('keyup', e => e.key === 'Enter' && handleSearch());
-        initializeApp();
-    </script>
-</body>
-</html>
-
+                                 <iframe id="details-player-iframe" class
